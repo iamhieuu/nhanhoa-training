@@ -56,6 +56,8 @@
 ### Quản trị Server qua SSH
 Quản lý Linux Server (Centos, Ubuntu...) qua SSH, các phần mềm em đã tìm hiểu gồm:
 * **Putty:** Nhẹ, đơn giản, phổ biến nhất.
+  <img width="661" height="371" alt="image" src="https://github.com/user-attachments/assets/b3dfe657-04fa-457c-b87e-2d0b064f8d8d" />
+
 * **SecureCRT:** Quản lý nhiều session chuyên nghiệp, bảo mật cao.
 
 ### Quản trị Remote Desktop
