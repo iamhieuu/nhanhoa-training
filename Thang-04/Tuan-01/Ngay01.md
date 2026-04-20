@@ -37,14 +37,14 @@
     ---
 ## 3. Công cụ giao tiếp và quản lý tài liệu
 #### Trao đổi công việc
-* **Telegram:**[![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/iamhieu04)
+* **Telegram:**&nbsp;&nbsp; [![Telegram](https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/iamhieu04)
 
-*   **Zalo:** [![Zalo](https://img.shields.io/badge/Zalo-0068FF?style=for-the-badge&logo=Zalo&logoColor=white)](https://zalo.me/0375852610)
+*   **Zalo:**&nbsp;&nbsp; [![Zalo](https://img.shields.io/badge/Zalo-0068FF?style=for-the-badge&logo=Zalo&logoColor=white)](https://zalo.me/0375852610)
 
 #### Quản lý tài liệu: GitHub
 * **Cách sử dụng GitHub:**
     * Sử dụng để quản lý quản lý tài liệu.
-    * Lưu trữ lịch sử thay đổi, báo cáo cho cấp trên.
+    * Lưu trữ lịch sử thay đổi,tạo file tạo thư mục, báo cáo cho cấp trên.
     * Lệnh cơ bản git add ., git pull, git commit -m"",git status.  
 * **Cách sử dụng Markdown trong GitHub:**
     * Tạo reponsitories sử dụng đuôi file `.md`.
@@ -60,21 +60,26 @@ Quản lý Linux Server (Centos, Ubuntu...) qua SSH, các phần mềm em đã t
 
 ### Quản trị Remote Desktop
 Dùng để quản lý các máy chủ chạy hệ điều hành Windows, em đã tìm hiểu gồm:
-* **Remote Desktop Connection (Windows):** có sẵn trên máy.
+* **Remote Desktop trên Windows (RDP):** Có sẵn trên máy nhưng máy phải bản Pro/Enterprise.
+* **Phần mềm remote Ultraviewer**: Đã có và dùng thử
+  <img width="1874" height="1010" alt="image" src="https://github.com/user-attachments/assets/6639a60e-c1ba-475f-a0c5-1af4bd59a87e" />
+
 * **Remote Desktop Manager:** Quản lý tập trung hàng trăm máy chủ tiện lợi.
 
 ---
 
 ## 5. Công cụ thực hành 
 ### Tạo máy ảo thực hành
-* **VMware Workstation:**  Linux(Ubuntu 22.04, Centos9 , Windows Server 2022).
+* **VMware Workstation:**  Trong đó có các hệ điều hành Linux(Ubuntu 22.04, Centos9) , Windows Server 2022.
+<img width="1919" height="979" alt="image" src="https://github.com/user-attachments/assets/5f6d30c2-1420-40ca-9afa-04419507d1b3" />
 
 ### Capture màn hình
 * **LightShot:** Chụp nhanh vùng màn hình bằng phím prt sc, chỉnh sửa mũi tên,ghi chú trực tiếp và upload lấy link nhanh.
+  <img width="1675" height="826" alt="image" src="https://github.com/user-attachments/assets/9183efcf-a4fe-4c9a-a552-a3f0dc6f840d" />
+
 
 ### Vẽ mô hình hệ thống (Diagram)
 * **Draw.io:** Công cụ miễn phí trên web, linh hoạt cho việc vẽ sơ đồ logic.
+<img width="1112" height="687" alt="image" src="https://github.com/user-attachments/assets/18525723-dbf0-462f-9785-26c912afdeeb" />
 
 
-
-[Image of network topology diagram example]
