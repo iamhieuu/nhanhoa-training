@@ -147,8 +147,11 @@ sau khi cài, test thử xem có connect database không
 
 #### Kiểm tra và khởi động lại 
 <img width="953" height="475" alt="image" src="https://github.com/user-attachments/assets/0408cfdb-9037-4868-af44-ac756da16fdc" />
-**Trạng thái:** Thành công.  
-* **Khả năng kết nối:** Web Server đã khởi tạo thành công bảng dữ liệu vào Database Server từ xa.  
+
+ **Trạng thái:** Thành công.  
+
+* **Khả năng kết nối:** Web Server đã khởi tạo thành công bảng dữ liệu vào Database Server từ xa.
+ 
 * **Giao diện:** Hiển thị màn hình chào mừng và yêu cầu thiết lập thông tin quản trị website.  
 
 ---
@@ -192,7 +195,8 @@ kết quả thu về :
 #### Tạo site trên IIS:
 <img width="363" height="341" alt="image" src="https://github.com/user-attachments/assets/215a8555-b6f6-4bbb-be75-4c336cf85436" />
 kết quả thu về :
-Lỗi 403.3 
+<img width="776" height="347" alt="image" src="https://github.com/user-attachments/assets/301b4e4d-4ab4-4ddc-9935-1d9a58beea3a" />
+
 ####  Tạo file aspx cơ bản :
 <img width="452" height="262" alt="image" src="https://github.com/user-attachments/assets/514e54aa-5d03-4a33-ba50-115f208bfc3f" />
 
@@ -202,3 +206,4 @@ Lỗi 403.3
 kết quả thu về
 <img width="715" height="172" alt="image" src="https://github.com/user-attachments/assets/3f5a253e-bfc4-4ceb-9e77-3e5fdb30c0c2" />
 
+####  Tạo file php cơ bản :
