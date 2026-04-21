@@ -1,5 +1,5 @@
-# BÁO CÁO THỰC TẬP NGÀY 02 - DNS Server
-## DNS SERVER
+# BÁO CÁO THỰC TẬP NGÀY 02
+## Báo cáo DNS SERVER
 ## 1. Giới thiệu
 Domain Name Server (DNS) là một thành phần cốt lõi của hạ tầng mạng Internet, là hệ thống chuyển đổi tên miền thân thiện thành địa chỉ IP số  mà máy tính hiểu được.
 Ví dụ : Google -> 192.168.1.10  
@@ -161,3 +161,44 @@ Nội dung trong file sẽ là các câu lệnh đã thực hiện ở phần tr
 #### cấp quyền thực thi file
 <img width="310" height="37" alt="image" src="https://github.com/user-attachments/assets/12b89f69-7967-4d73-92e5-17c002c78c30" />
 #### Sử dụng sudo ./install_...sh để chạy
+
+---
+## BÁO CÁO TRIỂN KHAI WEB SERVER IIS
+### Triển khai site demo1 html basic trên web server IIS trên windows server 2022
+### Sơ đồ :
+Hệ điều hành: Windows Server 2022 Datacenter.
+Dịch vụ: Internet Information Services (IIS) 10.0.
+Địa chỉ IP: 192.168.254.130
+
+### .Bật tính năng IIS
+tích chọn các tính năng cần thiết 
+<img width="491" height="347" alt="image" src="https://github.com/user-attachments/assets/3a61602c-b1f3-425f-8d51-24fd641771b6" />
+#### Tạo cây thư mục demo1_html
+<img width="447" height="164" alt="image" src="https://github.com/user-attachments/assets/a01f97a9-8967-4278-890e-fca3c3f3e967" />
+
+### Triển khai site demo1 html basic trên web server IIS trên windows server 2022
+####  Tạo file html cơ bản :
+<img width="323" height="180" alt="image" src="https://github.com/user-attachments/assets/9f92d45b-b855-4c3c-9243-4c97415d6e91" />
+
+#### Tạo site trên IIS:
+trỏ đến C:\inetpub\wwwroot\sites\demo1_html
+<img width="646" height="340" alt="image" src="https://github.com/user-attachments/assets/7b9ea65c-9ce9-4d0a-9f68-2a91b10ee3d0" />
+kết quả thu về :
+<img width="857" height="238" alt="image" src="https://github.com/user-attachments/assets/0a9bf844-4771-4c16-91c4-fc35cbf6bb87" />
+
+### Triển khai site demo2 ASP classic trên IIS
+####  Tạo file asp cơ bản :
+<img width="419" height="185" alt="image" src="https://github.com/user-attachments/assets/53d2499d-e00f-490b-9467-90ac52863760" />
+#### Tạo site trên IIS:
+<img width="363" height="341" alt="image" src="https://github.com/user-attachments/assets/215a8555-b6f6-4bbb-be75-4c336cf85436" />
+kết quả thu về :
+Lỗi 403.3 
+####  Tạo file aspx cơ bản :
+<img width="452" height="262" alt="image" src="https://github.com/user-attachments/assets/514e54aa-5d03-4a33-ba50-115f208bfc3f" />
+
+#### Tạo site trên IIS:
+<img width="367" height="290" alt="image" src="https://github.com/user-attachments/assets/25a02794-225d-4e2f-8e6c-d9388acd34a2" />
+
+kết quả thu về
+<img width="715" height="172" alt="image" src="https://github.com/user-attachments/assets/3f5a253e-bfc4-4ceb-9e77-3e5fdb30c0c2" />
+
