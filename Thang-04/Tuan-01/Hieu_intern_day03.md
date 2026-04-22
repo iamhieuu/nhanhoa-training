@@ -28,3 +28,18 @@ File này là nơi khai báo cho hệ thống biết thư mục nào, cho ai, qu
   <img width="838" height="301" alt="image" src="https://github.com/user-attachments/assets/cd68b51a-fd04-46bb-b0a3-32ad0ffcdee1" />
 
 ##### Client là linux
+* Cài đặt gói NFS hỗ trợ 
+<img width="385" height="92" alt="image" src="https://github.com/user-attachments/assets/0c1e7801-a9f7-4dd6-a343-3a4b9da230e2" />
+
+* Tạo điểm gắn mount
+  sudo mkdir -p /mnt/connect_nfs
+
+* Gắn mount
+* <img width="487" height="179" alt="image" src="https://github.com/user-attachments/assets/307a6e5a-723f-4057-bda0-bbc0c0966c68" />
+
+* Kết quả đạt được
+  <img width="482" height="126" alt="image" src="https://github.com/user-attachments/assets/1293450a-77ad-4abe-929d-2b96c665ae4e" />
+
+
+---
+## LVM
