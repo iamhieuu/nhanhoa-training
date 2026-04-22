@@ -173,9 +173,10 @@ Hệ điều hành: Windows Server 2022 Datacenter.
 Dịch vụ: Internet Information Services (IIS) 10.0.
 Địa chỉ IP: 192.168.254.130
 
-### .Bật tính năng IIS
+### Bật tính năng IIS
 tích chọn các tính năng cần thiết 
 <img width="491" height="347" alt="image" src="https://github.com/user-attachments/assets/3a61602c-b1f3-425f-8d51-24fd641771b6" />
+
 #### Tạo cây thư mục demo1_html
 <img width="447" height="164" alt="image" src="https://github.com/user-attachments/assets/a01f97a9-8967-4278-890e-fca3c3f3e967" />
 
@@ -186,7 +187,9 @@ tích chọn các tính năng cần thiết
 #### Tạo site trên IIS:
 trỏ đến C:\inetpub\wwwroot\sites\demo1_html
 <img width="646" height="340" alt="image" src="https://github.com/user-attachments/assets/7b9ea65c-9ce9-4d0a-9f68-2a91b10ee3d0" />
+
 kết quả thu về :
+
 <img width="857" height="238" alt="image" src="https://github.com/user-attachments/assets/0a9bf844-4771-4c16-91c4-fc35cbf6bb87" />
 
 ### Triển khai site demo2 ASP classic trên IIS
@@ -194,7 +197,9 @@ kết quả thu về :
 <img width="419" height="185" alt="image" src="https://github.com/user-attachments/assets/53d2499d-e00f-490b-9467-90ac52863760" />
 #### Tạo site trên IIS:
 <img width="363" height="341" alt="image" src="https://github.com/user-attachments/assets/215a8555-b6f6-4bbb-be75-4c336cf85436" />
+
 kết quả thu về :
+
 <img width="776" height="347" alt="image" src="https://github.com/user-attachments/assets/301b4e4d-4ab4-4ddc-9935-1d9a58beea3a" />
 
 ####  Tạo file aspx cơ bản :
@@ -204,6 +209,24 @@ kết quả thu về :
 <img width="367" height="290" alt="image" src="https://github.com/user-attachments/assets/25a02794-225d-4e2f-8e6c-d9388acd34a2" />
 
 kết quả thu về
+
 <img width="715" height="172" alt="image" src="https://github.com/user-attachments/assets/3f5a253e-bfc4-4ceb-9e77-3e5fdb30c0c2" />
 
 ####  Tạo file php cơ bản :
+<img width="275" height="103" alt="image" src="https://github.com/user-attachments/assets/1a1ca7e5-53b3-4333-b835-adc96beebf18" />
+
+#### Cài đặt php, nối PHP với IIS 10
+<img width="730" height="330" alt="image" src="https://github.com/user-attachments/assets/57c1dea9-7964-48c1-bc88-19e0cb7ad76b" />
+
+#### Tạo site trên IIS:
+<img width="360" height="307" alt="image" src="https://github.com/user-attachments/assets/e0e7100f-19f6-41b1-a355-bf5b15fd94cd" />
+
+Vào default document để add file php, giúp IIS tự đọc file php mà không cần gõ đuôi trên URL
+<img width="516" height="188" alt="image" src="https://github.com/user-attachments/assets/1685f250-fe45-47f3-85fb-1a7d0cab5081" />
+
+kết quả thu về:
+
+<img width="699" height="301" alt="image" src="https://github.com/user-attachments/assets/b59730cf-add4-4d4c-ad17-c29569533678" />
+
+
+
