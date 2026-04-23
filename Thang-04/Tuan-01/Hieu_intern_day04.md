@@ -115,14 +115,19 @@ là bộ lọc linh hoạt nhất, cho phép bạn tự định nghĩa các quy 
 Ví dụ: Nếu trong nội dung thư có chữ "Lương tháng 13" Thì chuyển thư đó vào hộp thư của Sếp 
 
 <img width="806" height="365" alt="image" src="https://github.com/user-attachments/assets/1c724917-92d9-4a74-a25a-358256148af7" />
-## Phân quyền cho tài khoản thành admin của domain
+
+## Phân quyền cho tài khoản thành admin của domain  
+
 Domain Admin là tài khoản chỉ có quyền quản lý các user trong một tên miền cụ thể, không được can thiệp vào cấu hình hệ thống server.  
+
 * Account manager - Administrative Roles - Domain Administrator
   
 <img width="784" height="342" alt="image" src="https://github.com/user-attachments/assets/009bb0bc-f6ae-4ee6-8fdd-b8e87a1228c4" />
 
 ## Đổi mật khẩu account admin global, admin domain
+
 Global Admin là tài khoản có quyền chỉnh sửa mọi thứ trên server  
+
 * Account manager - edit - Account detail - sửa pass
   
   <img width="569" height="353" alt="image" src="https://github.com/user-attachments/assets/65c453e7-6814-4bc6-86c0-845c1bdf57b2" />
@@ -144,7 +149,9 @@ Các dòng chữ màu đen/xanh là bình thường, dòng chữ màu đỏ thư
    * Remote Queue: Đây là nơi chứa các email đang chờ để gửi ra ngoài internet.  
    * Local Queue: Đây là nơi chứa các email gửi nội bộ giữa các user trong công ty bạn.  
 <img width="817" height="370" alt="image" src="https://github.com/user-attachments/assets/400567ab-d216-4347-827a-0f4eec2df0e7" />
-Nếu thấy email nằm ở đây quá lâu, bạn có thể chuột phải chọn Freeze hoặc Re-queue  
+
+Nếu thấy email nằm ở đây quá lâu, bạn có thể chuột phải chọn Freeze hoặc Re-queue
+  
 Một số mã lỗi log "đặc biệt chú ý" trong MDaemon:  
    * 250 OK: Email đã được gửi/nhận thành công.  
    * 550 User unknown: Gửi trượt vì địa chỉ email người nhận không tồn tại.  
