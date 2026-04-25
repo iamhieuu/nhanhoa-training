@@ -97,6 +97,7 @@ Sau khi khôi phục lại Server 1, Vip quay lại server1
 <img width="669" height="161" alt="image" src="https://github.com/user-attachments/assets/73bf906c-3813-4fa4-8b0d-5134c687a39c" />
 
 ## Firewall
+* pfSense là một hệ điều hành mã nguồn mở dựa trên nền tảng FreeBSD, được thiết kế chuyên dụng để biến một máy tính hoặc máy chủ thông thường thành một thiết bị Firewall và Router chuyên nghiệp. Nó có giao diện GUI, tính ổn định cao
 Triển khai pfsense sẽ có 2 card mạng ảo
 Adapter 1 (WAN): Để chế độ  NAT 
 Adapter 2 (LAN): Để chế độ Internal Network 
