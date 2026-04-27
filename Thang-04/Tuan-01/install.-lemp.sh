@@ -193,10 +193,10 @@ install_php_fpm() {
     log_info "PHP version:"
     php --version
     
-    log_info "Starting PHP-FPM service..."
-    systemctl start php-fpm
-    systemctl enable php-fpm
-    log_success "PHP-FPM service started and enabled"
+   log_info "Starting PHP-FPM service..."
+    PHP_VAL=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
+    systemctl start php$PHP_VAL-fpm
+    systemctl enable php$PHP_VAL-fpm
 }
 
 configure_nginx() {
@@ -229,10 +229,9 @@ server {
     }
 
     location ~ \.php$ {
-        # Include fastcgi_params
         include snippets/fastcgi-php.conf;
         
-        fastcgi_pass unix:/var/run/php/php-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
         
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param SCRIPT_NAME $fastcgi_script_name;
