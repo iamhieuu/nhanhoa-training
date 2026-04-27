@@ -2,7 +2,6 @@
 
 set -e  
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -35,7 +34,6 @@ print_header() {
 check_requirements() {
     print_header "1. KIỂM TRA YÊU CẦU HỆ THỐNG"
     
-    # Check if running as root
     if [[ $EUID -ne 0 ]]; then
         log_error "Script này phải chạy với quyền root!"
         log_info "Sử dụng: sudo ./install-lemp.sh"
@@ -57,7 +55,6 @@ check_requirements() {
         log_success "Hệ điều hành: $PRETTY_NAME"
     fi
     
-    # Check disk space
     DISK_SPACE=$(df /var | awk 'NR==2 {print int($4/1024/1024)}')
     if [ $DISK_SPACE -lt 5 ]; then
         log_error "Cần ít nhất 5GB dung lượng trống. Hiện tại: ${DISK_SPACE}GB"
@@ -227,7 +224,6 @@ server {
     index index.php index.html index.htm index.nginx-debian.html;
 
     location / {
-        # Try files in order
         try_files $uri $uri/ =404;
     }
 
