@@ -159,10 +159,13 @@ sau khi cài, test thử xem có connect database không
 #### Tạo file script cài LAMP
 Nội dung trong file sẽ là các câu lệnh đã thực hiện ở phần triển khai LAMP Stack, lần này ta dùng Mariadb thay vì SQL
 <img width="674" height="284" alt="image" src="https://github.com/user-attachments/assets/57ccf912-824d-4c69-bd09-8df17dafa529" />
+
 #### Tạo file script cài LEMP
 <img width="674" height="235" alt="image" src="https://github.com/user-attachments/assets/2c33e9a3-6f6a-42d7-95ef-b4875d7fc42f" />
+
 #### cấp quyền thực thi file
 <img width="310" height="37" alt="image" src="https://github.com/user-attachments/assets/12b89f69-7967-4d73-92e5-17c002c78c30" />
+
 #### Sử dụng sudo ./install_...sh để chạy
 
 ---
@@ -195,6 +198,7 @@ kết quả thu về :
 ### Triển khai site demo2 ASP classic trên IIS
 ####  Tạo file asp cơ bản :
 <img width="419" height="185" alt="image" src="https://github.com/user-attachments/assets/53d2499d-e00f-490b-9467-90ac52863760" />
+
 #### Tạo site trên IIS:
 <img width="363" height="341" alt="image" src="https://github.com/user-attachments/assets/215a8555-b6f6-4bbb-be75-4c336cf85436" />
 
