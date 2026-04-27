@@ -228,7 +228,14 @@ enable_modules() {
     log_success "Apache restarted successfully"
 }
 
-
+setup_firewall() {
+    print_header "11. THIẾT LẬP TƯỜNG LỬA UFW"
+    log_info "Đang cấu hình UFW..."
+    ufw allow ssh
+    ufw allow 'Nginx Full'
+    echo "y" | ufw enable
+    log_success "Tường lửa đã được kích hoạt và cho phép SSH, HTTP, HTTPS"
+}
 create_test_files() {
     print_header "7. TẠO CÁC FILE TEST"
     
