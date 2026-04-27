@@ -1,5 +1,5 @@
 # nhanhoa-training
-training support
+training system admin
 ## 👤 Thông tin cá nhân
 - **Họ và tên:** Nguyễn Thanh Hiếu
 - **Năm sinh:** 2004
