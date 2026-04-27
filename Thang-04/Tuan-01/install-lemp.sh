@@ -103,7 +103,14 @@ install_nginx() {
     log_info "Checking Nginx status..."
     systemctl status nginx --no-pager | head -5
 }
-
+setup_firewall() {
+    print_header "11. THIẾT LẬP TƯỜNG LỬA UFW"
+    log_info "Đang cấu hình UFW..."
+    ufw allow ssh
+    ufw allow 'Nginx Full'
+    echo "y" | ufw enable
+    log_success "Tường lửa đã được kích hoạt và cho phép SSH, HTTP, HTTPS"
+}
 
 install_database() {
     print_header "4. CÀI ĐẶT DATABASE SERVER"
