@@ -206,12 +206,13 @@ NORMAL MODE (default)
 ## Process trong Linux
 Process = Chương trình đang chạy
 
-Mỗi process có:
-├─ PID (Process ID) - số duy nhất
-├─ PPID  - process cha
-├─ UID 
-├─ CPU & Memory usage
-└─ Status
+Mỗi process có:  
+├─ PID (Process ID) - số duy nhất  
+├─ PPID  - process cha  
+├─ UID   
+├─ CPU & Memory usage  
+└─ Status  
+
 * ps aux : Lệnh xem process
 <img width="1446" height="688" alt="image" src="https://github.com/user-attachments/assets/60c12af1-985c-42e4-b13e-7e532714fa49" />
 * top,htop
