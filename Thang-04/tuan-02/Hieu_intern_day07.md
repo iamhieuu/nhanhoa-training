@@ -240,3 +240,31 @@ wget: download file
 nmtui: cấu hình IP có giao diện  
 
 ## NFS - NETWORK FILE SYSTEM
+NFS là một giao thức hệ thống tệp phân tán cho phép máy tính (client) truy cập vào các thư mục và tệp tin trên một máy tính khác (Server) qua mạng giống như đang nằm trên chính ổ cứng cục bộ của chính họ. Mục đích của NFS là để chia sẻ thư mục cho các máy khác
+#### 1.Thiết lập phía server
+sudo apt install nfs-kernel-server
+Cấu hình chia sẻ (/etc/exports):
+
+| Dạng chia sẻ | Cú pháp trong /etc/exports |
+| :--- | :--- |
+| Cho 1 IP cụ thể | /srv/nfs/shared 192.168.1.20(rw,sync,no_subtree_check) |
+| Cho cả subnet | /srv/nfs/shared 192.168.1.0/24(rw,sync,no_subtree_check) |
+| Chỉ cho phép đọc | /srv/nfs/public *(ro,sync) |
+
+Các Option quan trọng:
+
+| Option | Ý nghĩa |
+| :--- | :--- |
+| rw / ro | Đọc-Ghi / Chỉ đọc |
+| sync | Ghi dữ liệu an toàn xuống đĩa trước khi phản hồi |
+| no_root_squash | Cho phép root của client có quyền root trên server (Nguy hiểm) |
+
+sudo exportfs -a: Áp dụng cấu hình
+showmount -e localhost: Kiểm tra danh sách đang share
+
+#### 2.Thiết lập phía client
+sudo apt install nfs-common
+* Kết nối (Mount):
+  * sudo mount -t nfs 192.168.1.10:/srv/nfs/shared /mnt/nfs
+* Tự động Mount khi khởi động (/etc/fstab):
+   * Thêm dòng: 192.168.1.10:/srv/nfs/shared /mnt/nfs nfs rw,hard,timeo=600 0 0
