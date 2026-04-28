@@ -42,22 +42,24 @@ Linux là một hệ điều hành mã nguồn mở được tạo ra bởi Linu
 * Applications: Các ứng dụng phía trên cùng (Web server, Database, Trình soạn thảo nano/vi...).
 
 ## Các bản phân phối (distro) phổ biến.
-**Họ Debian (Ubuntu):** Quản lý gói bằng apt. Dòng LTS (Long Term Support - như Ubuntu 22.04 LTS) được hỗ trợ cập nhật lên tới 5 năm, là lựa chọn cực kỳ an toàn cho môi trường production.
-**Họ Red Hat (RHEL, CentOS, Rocky Linux)**: Tiêu chuẩn vàng của doanh nghiệp, quản lý gói bằng yum/dnf.
-**Họ Arch (Arch Linux, Manjaro)**: Dành cho người dùng nâng cao thích tùy chỉnh sâu
-check bản đang dùng : uname -a, cat /etc/os-release
+**Họ Debian (Ubuntu):** Quản lý gói bằng apt. Dòng LTS (Long Term Support - như Ubuntu 22.04 LTS) được hỗ trợ cập nhật lên tới 5 năm, là lựa chọn cực kỳ an toàn cho môi trường production.  
+**Họ Red Hat (RHEL, CentOS, Rocky Linux)**: Tiêu chuẩn vàng của doanh nghiệp, quản lý gói bằng yum/dnf.  
+**Họ Arch (Arch Linux, Manjaro)**: Dành cho người dùng nâng cao thích tùy chỉnh sâu  
+check bản đang dùng : uname -a, cat /etc/os-release  
 
 ## Quản lý người dùng và nhóm
 Linux là hệ thống Multi-User, cho phép nhiều người dùng cùng đăng nhập và sử dụng tài nguyên đồng thời. Mỗi thực thể được định danh bằng các chỉ số ID thay vì tên gọi ở mức hệ thống.  
 * /etc/passwd:	Thông tin cơ bản về User (UID, GID, Shell, Home).
 * /etc/shadow:	Lưu mật khẩu đã được mã hóa (chỉ root mới đọc được).
 * /etc/group:	Thông tin về các Nhóm (Groups).
-UID 0         → root 
-UID 1-99      → System accounts (daemon, bin, etc)
-UID 100-999   → System users (applications như nginx, apache)
-UID 1000+     → Người dùng root tạo
-UID 65534     → nobody
-id <username>: check thông tin user
+
+UID 0         → root   
+UID 1-99      → System accounts (daemon, bin, etc)  
+UID 100-999   → System users (applications như nginx, apache)  
+UID 1000+     → Người dùng root tạo  
+UID 65534     → nobody  
+id <username>: check thông tin user  
+
 ### User
 #### Tạo user
 * sudo useradd -m -s /bin/bash -c "Nguyen Hieu" -u 1500 nguyenhieu
@@ -113,7 +115,7 @@ Chuỗi quyền hạn thường có dạng rwxrwxrwx
 |644|rw-r--r--|Owner read+write, others read (Files thông thường)|
 |640|rw-r-----|Owner rw, group read (Config files)|
 |600|rw-------|Chỉ owner read+write (SSH keys, secrets)|
-|400|r--------|Chỉ owner đọc (Sensitive files)|
+|400|r--------|Chỉ owner đọc |
 
 Các quyền kinh điển:  
 * 755: Owner làm mọi thứ, Group/Others chỉ được xem và chạy (Dùng cho **thư mục** web, script).
@@ -215,6 +217,7 @@ Mỗi process có:
 
 * ps aux : Lệnh xem process
 <img width="1446" height="688" alt="image" src="https://github.com/user-attachments/assets/60c12af1-985c-42e4-b13e-7e532714fa49" />
+
 * top,htop
 <img width="1805" height="797" alt="image" src="https://github.com/user-attachments/assets/cad271c0-505d-46d7-aa19-0e49b2ad0a28" />
 
