@@ -217,18 +217,22 @@ Mỗi process có:
 <img width="1446" height="688" alt="image" src="https://github.com/user-attachments/assets/60c12af1-985c-42e4-b13e-7e532714fa49" />
 * top,htop
 <img width="1805" height="797" alt="image" src="https://github.com/user-attachments/assets/cad271c0-505d-46d7-aa19-0e49b2ad0a28" />
-* Kill process:
-  * kill <PID>: bỏ PID, process có thể cleanup
-  * kill -9 <PID>: bắt buộc kill
+
+* Kill process:  
+  * kill <PID>: bỏ PID, process có thể cleanup  
+  * kill -9 <PID>: bắt buộc kill  
   * killall/pkill nginx: kill process tên nginx
-sudo systemctl start <process>: bắt đầu
-sudo systemctl stop <process>: Dừng
-sudo systemctl restart <process>: khởi động lại
-sudo systemctl reload <process>: load lại
-sudo systemctl enable <process>: khả dụng
-sudo systemctl disable <process>: không khả dụng
+
+sudo systemctl start <process>: bắt đầu  
+sudo systemctl stop <process>: Dừng  
+sudo systemctl restart <process>: khởi động lại  
+sudo systemctl reload <process>: load lại  
+sudo systemctl enable <process>: khả dụng  
+sudo systemctl disable <process>: không khả dụng  
 sudo systemctl status <process>: check trạng thái
+
 ## NETWORK TRONG LINUX
+
 * ifconfig: tất cả interfaces
 * IP
   * ip addr: Hiển thị địa chỉ IP
@@ -238,6 +242,7 @@ sudo systemctl status <process>: check trạng thái
   * ss -tulpn | grep :80
 * ufw: tường lửa
   * ufw allow <port>
+
 nmap: công cụ check mạng, dùng cho an ninh  
 ping: Kiểm tra kết nối  
 traceroute: xem đường đi packet  
