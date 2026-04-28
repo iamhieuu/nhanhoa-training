@@ -77,6 +77,8 @@ id <username>: check thông tin user
   * sudo userdel -r <username>: xóa tất cả
  
 **Lệnh tắt**: adduser <username>: tạo user,  hỏi từng bước password, full name, v.v.
+**chage**: cài đặt yêu cầu cho mật khẩu
+* sudo chage <username>
 
 ### Group
 * sudo groupadd groupname
@@ -218,7 +220,13 @@ Mỗi process có:
   * kill <PID>: bỏ PID, process có thể cleanup
   * kill -9 <PID>: bắt buộc kill
   * killall/pkill nginx: kill process tên nginx
- 
+sudo systemctl start <process>: bắt đầu
+sudo systemctl stop <process>: Dừng
+sudo systemctl restart <process>: khởi động lại
+sudo systemctl reload <process>: load lại
+sudo systemctl enable <process>: khả dụng
+sudo systemctl disable <process>: không khả dụng
+sudo systemctl status <process>: check trạng thái
 ## NETWORK TRONG LINUX
 * ifconfig: tất cả interfaces
 * IP
@@ -268,3 +276,35 @@ sudo apt install nfs-common
   * sudo mount -t nfs 192.168.1.10:/srv/nfs/shared /mnt/nfs
 * Tự động Mount khi khởi động (/etc/fstab):
    * Thêm dòng: 192.168.1.10:/srv/nfs/shared /mnt/nfs nfs rw,hard,timeo=600 0 0
+
+## LVM (Logical Volume Manager)
+Sơ đồ tư duy (Luồng thực hiện)
+Physical Disks → Physical Volume → Volume Group → Logical Volume → Filesystem Format
+sudo pvcreate /dev/sdb /dev/sdc
+sudo vgcreate VG0 /dev/sdb /dev/sdc
+sudo lvcreate -L 5G -n LV_Data VG0: Tạo LV 5G
+sudo mkfs.ext4 /dev/VG0/LV_Data: format ext4
+### Mở rộng ổ đĩa (Khi server hết dung lượng)
+PV: pvcreate /dev/sdd - Khai báo ổ mới.
+VG: vgextend VGDATA /dev/sdd - Nạp ổ mới vào nhóm chung.
+LV: lvextend -l +100%FREE /dev/VGDATA/LV_WEB - Dùng hết phần trống mới nạp.
+Filesystem: resize2fs /dev/VGDATA/LV_WEB - Để hệ điều hành nhận dung lượng mới(dùng cho ext4).
+
+### THÊM Ổ CỨNG
+sudo pvcreate /dev/sdd:  Tạo PV mới
+sudo vgextend VG0 /dev/sdd: Thêm vào VG
+sudo lvextend -L +10G /dev/VG0/LV_Data: Mở rộng LV
+sudo resize2fs /dev/VG0/LV_Data: Resize FS
+
+### THAY THẾ Ổ CỨNG (/dev/sdb → /dev/sdd)
+sudo pvcreate /dev/sdd : Tạo PV mới
+sudo vgextend VG0 /dev/sdd : Thêm vào VG
+sudo pvmove /dev/sdb /dev/sdd: Di chuyển data
+sudo vgreduce VG0 /dev/sdb: Remove khỏi VG
+sudo pvremove /dev/sdb: Remove PV
+
+###  XÓA LV → VG → PV
+sudo umount /data: Unmount
+sudo lvremove /dev/VG0/LV_Data : Xóa LV
+sudo vgremove VG0 : Xóa VG
+sudo pvremove /dev/sdb /dev/sdc: Xóa PV
