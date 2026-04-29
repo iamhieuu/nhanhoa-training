@@ -256,3 +256,8 @@ netstat -an   :   Tất cả kết nối
 <img width="579" height="185" alt="{D41F0B82-D3BD-4617-B85E-4B8BE3D0AFF4}" src="https://github.com/user-attachments/assets/5c5d21c6-77fd-4977-b84d-7b231dc17337" />
 
 <img width="541" height="197" alt="{9782565A-04AA-475E-AB91-D4866DFA9B5E}" src="https://github.com/user-attachments/assets/be5cc734-4c02-47f7-b384-069eb5cca1c8" />
+
+sudo grep "sudo" /var/log/auth.log | grep "COMMAND" | tail -n: Liệt kê "n" lệnh gần nhất mà bạn (hoặc ai đó) đã dùng quyền sudo để chạy  
+sudo grep "su:" /var/log/auth.log: ai đã dùng su để vô root  
+find / -perm /4000 -newer /bin/bash 2>/dev/null: Files có SUID không quen  
+ls -la /etc/cron*: các lệnh chạy theo chu kỳ cố định của cả server  
