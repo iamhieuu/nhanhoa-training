@@ -40,12 +40,12 @@ sudo tail -f /var/log/apache2/error.log
 <img width="1814" height="543" alt="image" src="https://github.com/user-attachments/assets/fe0f6c33-5ffb-4f27-b6ed-9fce17454bbb" />
 
 * check IP truy cập nhiều nhất
-sudo awk '{print $1}' /var/log/apache2/access.log | sort | uniq -c | sort -rn | head -10
-* Tìm 404 errors
-sudo grep " 404 " /var/log/apache2/access.log | head -20
-* Tìm 5xx server errors
-sudo grep " 5[0-9][0-9] " /var/log/apache2/access.log
-sudo grep "CRON" /var/log/syslog:theo dõi được các tác vụ nào đã chạy tự động và chạy vào lúc nào.
+sudo awk '{print $1}' /var/log/apache2/access.log | sort | uniq -c | sort -rn | head -10  
+* Tìm 404 errors  
+sudo grep " 404 " /var/log/apache2/access.log | head -20  
+* Tìm 5xx server errors 
+sudo grep " 5[0-9][0-9] " /var/log/apache2/access.log  
+sudo grep "CRON" /var/log/syslog:theo dõi được các tác vụ nào đã chạy tự động và chạy vào lúc nào. 
 <img width="1597" height="481" alt="image" src="https://github.com/user-attachments/assets/684b86cf-cf05-4994-b1e7-f0a927af9121" />
 
 ###  Log Đăng Nhập
@@ -147,14 +147,15 @@ sudo apt install -y libpam-pwquality
 sudo nano /etc/security/pwquality.conf: file cấu hình
 *Thiết lập policy*
 <img width="594" height="340" alt="{D652F599-EBB2-4AF0-9BD2-CBB2E1D75CC0}" src="https://github.com/user-attachments/assets/07c2b60d-0c6f-47e1-a495-92acffefff77" />
-minlen = 8   : Tối thiểu 12 ký tự  
-dcredit = -1 : Ít nhất 1 chữ số  
-ucredit = -1  :  Ít nhất 1 chữ hoa  
-lcredit = -1    :  Ít nhất 1 chữ thường  
-ocredit = -1  :  Ít nhất 1 ký tự đặc biệt  
-maxrepeat = 3  : Không lặp quá 3 ký tự giống nhau    
-gecoscheck = 1 : Không dùng tên trong password  
-dictcheck = 1   : Kiểm tra từ điển  
+
+minlen = 8   : Tối thiểu 12 ký tự    
+dcredit = -1 : Ít nhất 1 chữ số     
+ucredit = -1  :  Ít nhất 1 chữ hoa    
+lcredit = -1    :  Ít nhất 1 chữ thường    
+ocredit = -1  :  Ít nhất 1 ký tự đặc biệt    
+maxrepeat = 3  : Không lặp quá 3 ký tự giống nhau      
+gecoscheck = 1 : Không dùng tên trong password    
+dictcheck = 1   : Kiểm tra từ điển    
 
 *Cấu hình account lockout*  
 sudo nano /etc/pam.d/common-auth  
