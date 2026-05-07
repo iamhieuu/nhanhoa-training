@@ -95,26 +95,159 @@ Private Profile: Áp dụng cho các mạng tin tưởng như mạng nhà riêng
 Public Profile: Áp dụng cho các mạng công cộng (như cafe, sân bay) – đây là mức bảo mật cao nhất, chặn hầu hết các kết nối vào. 
 ### 2. Cấu hình qua GUI
 Cách truy cập: Nhấn Win + R, gõ wf.msc và Enter  
+<img width="781" height="478" alt="image" src="https://github.com/user-attachments/assets/0ec6e956-7caa-4b79-9dc5-6fbbec5dd316" />
+
 Các thành phần chính:  
 * Inbound Rules: Kiểm soát các kết nối từ bên ngoài cố gắng truy cập vào server (ví dụ: cho phép khách truy cập web port 80).  
 * Outbound Rules: Kiểm soát các ứng dụng từ trong server truy cập ra internet (ví dụ: chặn một phần mềm độc hại gửi dữ liệu ra ngoài).  
 * Connection Security Rules: Thiết lập các kết nối bảo mật IPsec giữa các máy tính
+#### Tạo Inbound Rule qua GUI
+Inbound Rules → New Rule → Chọn Rule Type Port →→ Chọn Allow/Deny the connection → Chọn profile: Domain, Private, Public
+<img width="731" height="385" alt="{40DC1218-7B97-4E67-83ED-A274BC64599F}" src="https://github.com/user-attachments/assets/cc8a79c7-e267-4f70-aebe-209f8f9756c9" />
+
+#### Tạo Outbound Rule — Block ứng dụng
+Click Outbound Rules → New Rule → Rule Type: Program Browse → executable: C:\Program Files\... → Block the connection → Đặt tên và Finish
+<img width="473" height="394" alt="{79916A0B-3476-4F62-B725-08CD681DD898}" src="https://github.com/user-attachments/assets/7a3df255-806c-4355-a6da-ea5015d75eff" />
 
 ### 3. Cấu hình qua PowerShell
+PowerShell cho phép tự động hóa hoàn toàn
+#### Xem trạng thái rule
+* Xem trạng thái tất cả profile
+Get-NetFirewallProfile | Select Name, Enabled, DefaultInboundAction, DefaultOutboundAction
+<img width="475" height="78" alt="{67B1261E-48CB-4D11-8713-48052C05A0FA}" src="https://github.com/user-attachments/assets/f576fd31-bf5f-4126-8b1a-62f071fd7b18" />
 
+* Xem tất cả rules
+Get-NetFirewallRule | Select DisplayName, Direction, Action, Enabled | Format-Table
+<img width="478" height="264" alt="{47916A39-1225-46DD-B4F6-B0F1287ABDE3}" src="https://github.com/user-attachments/assets/23e98844-9355-4fc9-ae8d-3bc26f155073" />
+
+* Lọc rules đang bật
+Get-NetFirewallRule -Enabled True | Format-Table DisplayName, Direction, Action
+<img width="482" height="146" alt="{CC21258B-2B78-4A26-8CBF-75366A3A29D1}" src="https://github.com/user-attachments/assets/971ae27f-d80c-4445-ac22-4b2f898fb8c0" />
+
+* Xem rules với thông tin port
+Get-NetFirewallRule -DisplayName "Allow HTTP*" | Get-NetFirewallPortFilter
+<img width="416" height="129" alt="{C2799A54-7F72-4F04-9C51-C0793C435F8D}" src="https://github.com/user-attachments/assets/399dfe41-d2db-4cc6-9d26-5a93f74d80f8" />
+
+#### Tạo rules cơ bản trên powershell
+Cho phép port inbound  
+```powershell
+New-NetFirewallRule `
+    -DisplayName "Allow HTTP Inbound" `
+    -Direction Inbound `
+    -Protocol TCP `
+    -LocalPort 80 `
+    -Action Allow `
+    -Profile Any `
+    -Enabled True
+```
+<img width="486" height="312" alt="{7F1864BE-4D81-4B00-9F42-AEDD40FE1365}" src="https://github.com/user-attachments/assets/1fc15927-ef40-46a6-b5ae-06cfa21899b0" />
+
+* Cho phép RDP chỉ từ dải mạng nội bộ
+```
+New-NetFirewallRule `
+    -DisplayName "Allow RDP Internal Only" `
+    -Direction Inbound `
+    -Protocol TCP `
+    -LocalPort 3389 `
+    -RemoteAddress 192.168.136.133/24 `
+    -Action Allow `
+    -Profile Domain,Private `
+    -Enabled True
+```
+
+* Chặn ip cụ thể
+```
+New-NetFirewallRule `
+    -DisplayName "Block Attacker 192.168.136.121" `
+    -Direction Inbound `
+    -RemoteAddress 192.168.136.121 `
+    -Action Block `
+    -Enabled True
+```
 ## III.So sánh
 
-|Tiêu chí|Linux (iptables/ufw)|Windows Defender Firewall|
-|*---| *---| *---|  
-
-|Giao diện | CLI (dòng lệnh), file config | GUI (wf.msc) + PowerShell|  
-|Tính linh hoạt | Rất cao (mangle, raw, nat) | Trung bình (WFP platform)| 
-|Độ khó học | Cao (iptables) / Trung (ufw) | Thấp (GUI) / Trung (PS)|  
+|Tiêu chí|Linux (iptables/ufw|Windows Defender Firewall|
+| :--- | :--- | :--- | 
+|Giao diện | CLI, file config | GUI (wf.msc) + PowerShell|  
+|Tính linh hoạt | Rất cao  | Trung bình | 
 |Tự động hóa | Shell script, Ansible | PowerShell, Group Policy|  
-|Stateful inspection | Có (-m state/conntrack) | Có (tích hợp sẵn)|  
+|Stateful inspection | Có  | Có (tích hợp sẵn)|  
 |Profiles / Zones | firewalld zones / ufw app | Domain / Private / Public|  
 |Logging | /var/log/ufw.log, iptables LOG | Event Viewer, WFP log|  
 |NAT / Routing | Có (iptables -t nat) | Hạn chế, cần RRAS|  
-|Môi trường phù hợp | Server, cloud, DevOps | Enterprise Windows infra|  
+|Môi trường phù hợp | Server, cloud, DevOps | Enterprise Windows infra|    
+|Chi Phí | FREE | Có phí |    
 
+Không có cái nào tốt hơn, chúng phù hợp với hệ sinh thái của mình. Cần biết sử dụng cả hai.
 ## IV.Tcpdump và wireshark
+- Tcpdump và Wireshark đều dùng để bắt và phân tích gói tin mạng (.pcap) . Chúng là công cụ giám sát/debug.
+- TCPdump hoạt động ở tầng 2,3,4 trong mô hình OSI
+
+|Tiêu chí | TCPDump | Wireshark|  
+| :--- | :--- | :--- |  
+|Giao diện | Dòng lệnh (CLI) | Giao diện đồ họa (GUI)|  
+|Tài nguyên | Rất nhẹ, tốn ít RAM/CPU | Nặng, yêu cầu nhiều tài nguyên|  
+|Dùng trên server | Rất tốt, phù hợp môi trường không màn hình | Hạn chế, cần cài thêm môi trường đồ họa (X11)|  
+|Phân tích trực quan | Không có, chỉ hiện dòng text | Rất tốt, có biểu đồ và màu sắc|  
+|Đọc file .pcap | Có hỗ trợ | Có hỗ trợ (rất mạnh)|  
+|Cú pháp lọc | BPF  | Display Filter phức tạp và chi tiết hơn|  
+|Dùng cho| Capture nhanh, automation, SSH session | Phân tích sâu, trực quan|
+
+
+### TCPDUMP trên Ubuntu 22.04
+1. Cài đặt tcpdump  
+sudo apt install -y tcpdump  
+<img width="391" height="111" alt="{B9BD8002-E595-48E9-B262-E2C51C2BC4A1}" src="https://github.com/user-attachments/assets/67e87d46-85e0-4f49-888d-0f5df5ce46ae" />  
+- tcpdump cần quyền root để bắt gói tin, ta có thể sử dụng 2 cách sau  
+ - 1 là dùng sudo tcpdump  
+ - 2 là gán cho user vào group pcap  
+<img width="437" height="129" alt="{E2E1323F-1A76-4FBF-AAB7-AA4DE43BB518}" src="https://github.com/user-attachments/assets/691150ac-d0e6-4b4d-9a9c-b906c4e9992d" />
+
+2. Xem tất cả card mạng
+sudo tcpdump -D
+<img width="432" height="128" alt="{F3978C58-1BC4-4E69-AF7B-615966A004AD}" src="https://github.com/user-attachments/assets/7c68364a-e234-4d2b-ae17-eead8a028d31" />
+tcpdump [options] [filter expression] : cú pháp cơ bản  
+VD: sudo tcpdump -i ens33: Bắt tất cả gói tin
+sudo tcpdump -i ens33 -c 10: Bắt 10 gói rồi dừng
+<img width="792" height="210" alt="{54178F18-5B61-4D04-92B6-1AB5C1323A6A}" src="https://github.com/user-attachments/assets/34c840bb-a070-4210-b24a-c9562d61d0d2" />
+
+
+```
+-i <interface>   : Chọn card mạng
+                   Ví dụ: -i ens33, -i any (tất cả)
+-n               : Không phân giải DNS (hiển thị IP thay hostname)
+-nn              : Không phân giải cả port (hiển thị số thay tên)
+-v               : Verbose: Hiển thị thêm thông tin
+-vvv             : Verbose nhất
+-c <number>      : Bắt <number> gói tin rồi dừng
+                   Ví dụ: -c 100
+-w <file>        : Lưu vào file .pcap
+                   Ví dụ: -w /tmp/capture.pcap
+-r <file>        : Đọc từ file .pcap
+                   Ví dụ: -r /tmp/capture.pcap
+-l               : Line buffering (hiển thị ngay)
+-A               : Hiển thị nội dung ASCII
+-X               : Hiển thị nội dung Hex và ASCII
+-XX              : Hiển thị cả Ethernet header
+-e               : Hiển thị thông tin Ethernet (MAC address)
+-s <size>        : Kích thước snapshot (byte)
+                 : -s 0 hoặc -s 65535 = bắt toàn bộ
+-q               : Quiet mode (ít thông tin hơn)
+```
+3. Thực hành
+
+Bắt 10 gói tin bất kì   
+<img width="858" height="224" alt="{5E92B9AA-5665-4E12-896F-EAEC81CF8820}" src="https://github.com/user-attachments/assets/58be28e5-981e-4d2b-bfa8-20897a8df6da" />
+
+Bắt gói TCP  
+sudo tcpdump -i ens33 tcp -c 20  
+<img width="846" height="331" alt="{063A7491-1A97-4C97-894A-E3FF9F9B33A9}" src="https://github.com/user-attachments/assets/e6e5b0da-8c71-4061-8ad8-c361c90228b3" />
+
+Bắt port 22 (SSH)  
+sudo tcpdump -i eth0 port 22 -c 20   
+<img width="828" height="331" alt="{E928AB06-D2DA-41AD-989F-25AB7D85F602}" src="https://github.com/user-attachments/assets/e82e5670-149a-4851-b0d8-b42345832928" />
+
+Lưu file và đọc file
+sudo tcpdump -i eth0 -w /var/log/tcpdump/capture_$(date +%Y%m%d_%H%M%S).pcap
+<img width="873" height="354" alt="{3E6A0890-2410-46F2-B8B5-419465680967}" src="https://github.com/user-attachments/assets/e1af904a-1c25-4ed7-9452-c861be53fa20" />
+
