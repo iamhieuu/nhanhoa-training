@@ -103,15 +103,18 @@ Các thành phần chính:
 ### 3. Cấu hình qua PowerShell
 
 ## III.So sánh
-|Tiêu chí | Linux (iptables/ufw) | Windows Defender Firewall|
-|**|**|**|
-|Giao diện | CLI (dòng lệnh), file config | GUI (wf.msc) + PowerShell
-|Tính linh hoạt | Rất cao (mangle, raw, nat) | Trung bình (WFP platform)
-|Độ khó học | Cao (iptables) / Trung (ufw) | Thấp (GUI) / Trung (PS)
-|Tự động hóa | Shell script, Ansible | PowerShell, Group Policy
-|Stateful inspection | Có (-m state/conntrack) | Có (tích hợp sẵn)
-|Profiles / Zones | firewalld zones / ufw app | Domain / Private / Public
-|Logging | /var/log/ufw.log, iptables LOG | Event Viewer, WFP log
-|NAT / Routing | Có (iptables -t nat) | Hạn chế, cần RRAS
-|Môi trường phù hợp | Server, cloud, DevOps | Enterprise Windows infra
+
+|Tiêu chí|Linux (iptables/ufw)|Windows Defender Firewall|
+|*---| *---| *---|  
+
+|Giao diện | CLI (dòng lệnh), file config | GUI (wf.msc) + PowerShell|  
+|Tính linh hoạt | Rất cao (mangle, raw, nat) | Trung bình (WFP platform)| 
+|Độ khó học | Cao (iptables) / Trung (ufw) | Thấp (GUI) / Trung (PS)|  
+|Tự động hóa | Shell script, Ansible | PowerShell, Group Policy|  
+|Stateful inspection | Có (-m state/conntrack) | Có (tích hợp sẵn)|  
+|Profiles / Zones | firewalld zones / ufw app | Domain / Private / Public|  
+|Logging | /var/log/ufw.log, iptables LOG | Event Viewer, WFP log|  
+|NAT / Routing | Có (iptables -t nat) | Hạn chế, cần RRAS|  
+|Môi trường phù hợp | Server, cloud, DevOps | Enterprise Windows infra|  
+
 ## IV.Tcpdump và wireshark
