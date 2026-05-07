@@ -1,7 +1,7 @@
 # Báo cáo thực tập ngày 09 - Firewall, tcpdump và wireshark
 ## I.Firewall trên Linux
 ### 1. Tổng quan về Firewall
-Firewall là một công cụ bảo mật mạng giúp: 
+Firewall là một công cụ bảo mật mạng giúp:   
 Kiểm soát luồng dữ liệu vào/ra hệ thống  
 Chặn các kết nối không được phép  
 Cho phép các kết nối được phép  
@@ -34,8 +34,10 @@ sudo iptables -L -n
 * Xem dạng lệnh  
 sudo iptables -S
 <img width="289" height="112" alt="{09135A9E-E92E-4A86-B098-E438EDD5C838}" src="https://github.com/user-attachments/assets/edf6c338-c607-4ab2-9e46-dc388792d517" />
-Cú pháp cơ bản  
-iptables -[A/I/D] CHAIN -[p/s/d/i/o] [giá_trị] --dport [port] -j [ACTION]  
+Cú pháp cơ bản
+
+**iptables -[A/I/D] CHAIN -[p/s/d/i/o] [giá_trị] --dport [port] -j [ACTION]**  
+  
 <img width="445" height="40" alt="{465EA0A8-D469-4207-995F-4E9FD4D62BA5}" src="https://github.com/user-attachments/assets/724e7a16-ddfe-4338-8214-557e6fb736bd" />
 
 * Chống brute force SSH. Tối đa 3 phút 1 kết nổi 
@@ -90,9 +92,9 @@ sudo apt install perl libwww-perl libio-socket-ssl-perl curl -y
 ## II.Firewall trên Windows
 ### 1.Tổng quan về firewall trên windows
 Windows Defender Firewall là một thành phần quan trọng của hệ điều hành Windows, giúp bảo vệ máy tính bằng cách chặn các lưu lượng truy cập trái phép. Khác với Linux tập trung vào "Chains", Windows quản lý Firewall dựa trên các Profiles  
-Domain Profile: Áp dụng khi máy tính kết nối vào một mạng nội bộ có máy chủ quản lý tên miền.    
-Private Profile: Áp dụng cho các mạng tin tưởng như mạng nhà riêng hoặc văn phòng nhỏ.  
-Public Profile: Áp dụng cho các mạng công cộng (như cafe, sân bay) – đây là mức bảo mật cao nhất, chặn hầu hết các kết nối vào. 
+* Domain Profile: Áp dụng khi máy tính kết nối vào một mạng nội bộ có máy chủ quản lý tên miền.    
+* Private Profile: Áp dụng cho các mạng tin tưởng như mạng nhà riêng hoặc văn phòng nhỏ.  
+* Public Profile: Áp dụng cho các mạng công cộng (như cafe, sân bay) – đây là mức bảo mật cao nhất, chặn hầu hết các kết nối vào. 
 ### 2. Cấu hình qua GUI
 Cách truy cập: Nhấn Win + R, gõ wf.msc và Enter  
 <img width="781" height="478" alt="image" src="https://github.com/user-attachments/assets/0ec6e956-7caa-4b79-9dc5-6fbbec5dd316" />
@@ -324,6 +326,7 @@ Lọc theo giao thức, IP, port
 * Follow TCP Stream
  * Màu đỏ: Client gửi (request)
  * Màu xanh: Server trả lời (response)
+<img width="823" height="415" alt="{D89335AE-069B-43A2-B78A-946B5E0EE794}" src="https://github.com/user-attachments/assets/60b1845d-1bf7-403e-9467-0bebd63b97f0" />
 
 <img width="329" height="401" alt="{9C8A1659-1921-4C95-91F1-BA127E55DE7D}" src="https://github.com/user-attachments/assets/45c28889-6110-4fe3-bd9d-3901f7a4ade1" />
 
@@ -336,3 +339,4 @@ Menu Statistics:
 → Flow Graph           : Luồng kết nối  
 → DNS                  : Thống kê DNS queries  
 → HTTP                 : Thống kê HTTP requests  
+<img width="392" height="249" alt="{5DEA6652-EAAD-412E-B597-18E952A59D8C}" src="https://github.com/user-attachments/assets/4864bcd7-f935-4c30-a012-142b0424d634" />
