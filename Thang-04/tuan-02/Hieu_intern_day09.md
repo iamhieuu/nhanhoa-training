@@ -194,7 +194,7 @@ Không có cái nào tốt hơn, chúng phù hợp với hệ sinh thái của m
 |Dùng cho| Capture nhanh, automation, SSH session | Phân tích sâu, trực quan|
 
 
-### TCPDUMP trên Ubuntu 22.04
+### TCPdump trên Ubuntu 22.04
 1. Cài đặt tcpdump  
 sudo apt install -y tcpdump  
 <img width="391" height="111" alt="{B9BD8002-E595-48E9-B262-E2C51C2BC4A1}" src="https://github.com/user-attachments/assets/67e87d46-85e0-4f49-888d-0f5df5ce46ae" />  
@@ -244,10 +244,95 @@ sudo tcpdump -i ens33 tcp -c 20
 <img width="846" height="331" alt="{063A7491-1A97-4C97-894A-E3FF9F9B33A9}" src="https://github.com/user-attachments/assets/e6e5b0da-8c71-4061-8ad8-c361c90228b3" />
 
 Bắt port 22 (SSH)  
-sudo tcpdump -i eth0 port 22 -c 20   
+sudo tcpdump -i ens33 port 22 -c 20     
 <img width="828" height="331" alt="{E928AB06-D2DA-41AD-989F-25AB7D85F602}" src="https://github.com/user-attachments/assets/e82e5670-149a-4851-b0d8-b42345832928" />
 
-Lưu file và đọc file
-sudo tcpdump -i eth0 -w /var/log/tcpdump/capture_$(date +%Y%m%d_%H%M%S).pcap
-<img width="873" height="354" alt="{3E6A0890-2410-46F2-B8B5-419465680967}" src="https://github.com/user-attachments/assets/e1af904a-1c25-4ed7-9452-c861be53fa20" />
+Bắt DNS:  
+sudo tcpdump -i ens33 udp port 53 -A -c 20  
+<img width="689" height="350" alt="{D5C4B4AC-B18C-4D57-B2C6-B635F9C75337}" src="https://github.com/user-attachments/assets/dfe1c1c6-df3d-4abc-be72-0cec6f925456" />
 
+Xem nội dung ASCII của gói tin  
+sudo tcpdump -i ens33 -A port 80 -c 20  
+<img width="817" height="404" alt="{26190858-7BC3-4BB5-9245-B0492DFE585C}" src="https://github.com/user-attachments/assets/4e24e7c4-901d-4b05-b3fa-71613b8f323f" />
+
+Xem Hex + ASCII:  
+sudo tcpdump -i ens33 -X port 80 -c 10  
+<img width="860" height="330" alt="{0705BC20-2D1F-4239-B4C0-5E3A2E123565}" src="https://github.com/user-attachments/assets/a0cccfe2-6eaf-429f-a9b1-b70f2ddd98b2" />
+
+
+Lưu file và đọc file  
+sudo tcpdump -i ens33 -w /var/log/tcpdump/capture_$(date +%Y%m%d_%H%M%S).pcap  
+<img width="873" height="354" alt="{3E6A0890-2410-46F2-B8B5-419465680967}" src="https://github.com/user-attachments/assets/e1af904a-1c25-4ed7-9452-c861be53fa20" />  
+
+### Wireshark trên Ubuntu 22.04
+Wireshark là công cụ phân tích gói tin mạng có giao diện đồ họa (GUI), miễn phí và mã nguồn mở. Nó giúp ta có thể nhìn thấy toàn bộ dữ liệu đi qua card mạng, phân tích gói tin chi tiết, debug sự cố mạng hay ứng dụng, Check bảo mật hệ thống  
+Công cụ thực hiện:  
+Ubuntu server: Tshark  
+Ubuntu desktop: Wireshark  
+Sử dụng Wireshark trên Ubuntu Server chủ yếu thông qua công cụ dòng lệnh TShark để bắt và phân tích gói tin mạng. Bạn cần cài đặt, cấu hình quyền người dùng, và sử dụng các câu lệnh tshark để ghi log, phân tích trực tiếp hoặc lưu file .pcap để phân tích sau. 
+#### Cài Tshark 
+Cài đặt TShark
+sudo apt install -y tshark
+<img width="381" height="93" alt="{6C55FC12-A9FA-47EE-A1E7-5177266237D8}" src="https://github.com/user-attachments/assets/93196040-4026-4e30-bdd5-4c5185b27ae2" />
+Thêm user vào group wireshark
+sudo usermod -aG wireshark $USER
+
+---
+Xem danh sách các card mạng 
+tshark -D
+<img width="366" height="203" alt="{2FA47188-50C4-48B2-867D-88878FDB6648}" src="https://github.com/user-attachments/assets/37e0e836-9329-4b9e-a73d-234c4ea0c299" />
+tshark -i ens33 -c 10 : Bắt gói tin cơ bản
+<img width="644" height="195" alt="{8D1C01A2-BE91-48F9-BDB3-050E68992352}" src="https://github.com/user-attachments/assets/2522f2ac-2e86-4d00-b189-a005afd89504" />
+tshark -i ens33 -c 100 -w /var/log/tcpdump/tshark.pcap: Lưu vào file pcap
+<img width="793" height="358" alt="{B4F3044F-F3AA-4A2A-A486-ED9D458CD6FB}" src="https://github.com/user-attachments/assets/0e406bab-c686-4d71-8bc6-eee69ab92dd9" />
+
+Chỉ hiển thị IP nguồn, đích và giao thức  
+```
+tshark -i ens33 -c 20 -T fields \
+    -e frame.number \
+    -e ip.src \
+    -e ip.dst \
+    -e _ws.col.Protocol \
+    -e frame.len
+```
+<img width="877" height="324" alt="{BC58000A-7F6A-4AFD-A382-7940AE4B4A1B}" src="https://github.com/user-attachments/assets/ac11cf9b-def1-4cde-9ebf-fecde9f6f722" />
+
+#### Cài Wireshark 
+ Cài đặt Wireshark GUI
+sudo apt install -y wireshark
+<img width="489" height="408" alt="{E2218600-F563-4D29-8F1E-3F9E0F6CC4B4}" src="https://github.com/user-attachments/assets/6d10003b-acc6-4bbd-82b8-63e9b436f3e2" />
+
+#### Copy File PCAP Về Máy Local
+scp hostname@IPserver:/var/log/tcpdump/file.pcap ~/Downloads/
+<img width="367" height="240" alt="{5A23A37B-88AC-4A2F-8939-32D7CC318ACA}" src="https://github.com/user-attachments/assets/9ce5be1a-c0bd-4ca4-8e42-aae2b3cdd903" />
+
+#### Phân Tích Với Wireshark GUI
+Mở Wireshark → File → Open → Chọn file .pcap đã copy về → Click Open
+<img width="479" height="418" alt="{021B106B-5C10-44D9-910D-FA2B87248BFA}" src="https://github.com/user-attachments/assets/cc665498-b0b3-4404-8dcb-8daa4cee9527" />
+🟢 Xanh lá    : TCP traffic thông thường  
+🔵 Xanh dương  : UDP traffic  
+⚫ Đen        : Gói tin lỗi   
+🟡 Vàng       : Retransmissions, out of order  
+🔴 Đỏ         : TCP RST, lỗi kết nối  
+🩷 Hồng       : ICMP errors  
+🟣 Tím        : IPv6 traffic  
+
+* Display Filters: Dùng để lọc trong wireshark 
+Lọc theo giao thức, IP, port
+<img width="475" height="403" alt="{5108A702-4BD6-4C91-9A0D-7D34EC950A47}" src="https://github.com/user-attachments/assets/ecafbc67-b15b-49a8-8e62-93e12661bf62" />
+
+* Follow TCP Stream
+ * Màu đỏ: Client gửi (request)
+ * Màu xanh: Server trả lời (response)
+
+<img width="329" height="401" alt="{9C8A1659-1921-4C95-91F1-BA127E55DE7D}" src="https://github.com/user-attachments/assets/45c28889-6110-4fe3-bd9d-3901f7a4ade1" />
+
+* Statistics (Thống Kê)  
+Menu Statistics:  
+→ Protocol Hierarchy   : % từng giao thức  
+→ Conversations        : Tất cả kết nối  
+→ Endpoints            : Tất cả IP/port  
+→ IO Graphs            : Biểu đồ băng thông theo thời gian  
+→ Flow Graph           : Luồng kết nối  
+→ DNS                  : Thống kê DNS queries  
+→ HTTP                 : Thống kê HTTP requests  
