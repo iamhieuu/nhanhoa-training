@@ -385,9 +385,9 @@ sudo nginx -t
 #  Reload Nginx
 # Test với /etc/hosts (khi chưa có DNS thật)
 # Thêm dòng này vào /etc/hosts trên máy CLIENT
-echo "103.20.30.40 site-a.com www.site-a.com" | sudo tee -a /etc/hosts
-echo "103.20.30.40 site-b.com www.site-b.com" | sudo tee -a /etc/hosts
-echo "103.20.30.40 site-c.com www.site-c.com" | sudo tee -a /etc/hosts
+echo "192.168.136.131 site-a.com www.site-a.com" | sudo tee -a /etc/hosts
+echo "192.168.136.131 site-b.com www.site-b.com" | sudo tee -a /etc/hosts
+echo "192.168.136.131 site-c.com www.site-c.com" | sudo tee -a /etc/hosts
 
 # Test từ terminal trên server
 curl -H "Host: site-a.com" http://localhost
