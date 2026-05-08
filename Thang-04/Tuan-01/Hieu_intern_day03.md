@@ -48,7 +48,10 @@ File này là nơi khai báo cho hệ thống biết thư mục nào, cho ai, qu
 ---
 ## LVM
 ### Tổng quan
-LVM (Logical Volume Manager) là một phương pháp quản lý ổ đĩa trên Linux cho phép bạn quản lý không gian lưu trữ một cách linh hoạt hơn rất nhiều so với cách chia phân vùng truyền thống.
+LVM (Logical Volume Manager) là một phương pháp quản lý ổ đĩa trên Linux cho phép bạn quản lý không gian lưu trữ một cách linh hoạt hơn rất nhiều so với cách chia phân vùng truyền thống.  
+* Ví Dụ Thực Tế: Bạn có 2 ổ cứng, Tạo PV từ mỗi ổ, Gộp vào 1 VG 4GB. Cắt ra LV theo nhu cầu, format, mount vĩnh viễn.    
+* Disk -> PV -> VG -> LV -> Filesystem.  
+
 ### Quá trình khởi tạo LVM
 Tạo 1 ổ cứng vật lý 3G , 1 ổ cứng vật lý 10G
 <img width="556" height="335" alt="image" src="https://github.com/user-attachments/assets/7a5f5878-d171-4083-a83b-95cbcbdaac7c" />
