@@ -295,20 +295,84 @@ sudo nano /var/www/site-a.com/public/index.html
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>${site}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Info</title>
     <style>
-        body { font-family: Arial; text-align: center; padding: 50px;
-               background: #f0f2f5; }
-        .box { background: white; padding: 40px; border-radius: 10px;
-               box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: inline-block; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+        }
+        .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        h1 {
+            color: #1a1a1a;
+            font-size: 28px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        .info-text {
+            color: #4b5563;
+            font-size: 16px;
+            margin: 8px 0;
+        }
+        .highlight {
+            font-weight: 600;
+            color: #2563eb;
+        }
+        #clock {
+            font-family: monospace;
+            background: #f8fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h1>🌐 ${site}</h1>
-        <p>Server: $(hostname)</p>
-        <p>Thời gian: $(date '+%Y-%m-%d %H:%M:%S')</p>
+    <div class="card">
+        <div class="icon">🌐</div>
+        <h1 id="site-display">Loading...</h1>
+        <p class="info-text">Server: <span class="highlight" id="hostname-display">Web Server</span></p>
+        <p class="info-text">Thời gian: <span id="clock">0000-00-00 00:00:00</span></p>
     </div>
+    <script>
+        const hostname = window.location.hostname || "Localhost";
+        document.getElementById('site-display').innerText = iamhieu;
+        function updateClock() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeString = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('clock').innerText = timeString;
+        }
+        setInterval(updateClock, 1000)
+        updateClock();
+    </script>
 </body>
 </html>
 
