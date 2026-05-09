@@ -54,7 +54,8 @@ Sử dụng thuật toán RR 50-50
     KeepAliveTimeout 5
     MaxKeepAliveRequests 100
 </VirtualHost>
-```
+
+
 <img width="474" height="366" alt="{01CF8258-AFD0-4925-BBBA-EB3C0588C736}" src="https://github.com/user-attachments/assets/7d283924-6769-474f-a4cd-376e434de08e" />
 
 * Tạo trên apache máy 2 tương tự
@@ -294,6 +295,7 @@ sudo ufw status verbose
 <img width="532" height="232" alt="{BE670787-4B9A-408D-B468-CF2009A066BE}" src="https://github.com/user-attachments/assets/fcdcd442-6eb2-4cbe-877d-e1e7b014a652" />
 
 **iptables**
+
 ```
 iptables -F && iptables -X
 iptables -A INPUT -p tcp --dport 22 -j ACCEPT
@@ -311,19 +313,21 @@ iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 iptables -A INPUT -p tcp --syn -m limit --limit 1/s --limit-burst 4 -j ACCEPT
 iptables -A INPUT -p tcp --syn -j DROP
 ```
-LƯU RULE  
+
+LƯU RULE    
 sudo apt install iptables-persistent -y  
 iptables-save > /etc/iptables/rules.v4  
+
 ## Chống Brute Force
 **Fail2Ban** theo dõi log, phát hiện pattern này và tự động chặn IP đó trong X giờ. Không cần can thiệp thủ công.  
-* Cài đặt và bật Fail2Ban
-sudo apt update && sudo apt install fail2ban -y
-sudo systemctl enable fail2ban
-sudo systemctl start fail2ban
+* Cài đặt và bật Fail2Ban  
+sudo apt update && sudo apt install fail2ban -y  
+sudo systemctl enable fail2ban  
+sudo systemctl start fail2ban  
 
 <img width="864" height="241" alt="{BA56F15F-DB9B-43A6-8033-9AE2D558023D}" src="https://github.com/user-attachments/assets/ddabc014-e96e-47eb-a190-4ef26c0d2865" />
 
-Tạo file cấu hình local (KHÔNG sửa jail.conf)  
+Tạo file cấu hình local (KHÔNG sửa jail.conf)   
 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local  
 sudo nano /etc/fail2ban/jail.local  
 ```
@@ -351,7 +355,9 @@ logpath  = /var/log/nginx/error.log
 maxretry = 10
 ```
 <img width="376" height="153" alt="{03146D8C-5E5B-47AA-9730-2D3BA6862BA1}" src="https://github.com/user-attachments/assets/9376625e-7ca6-4f74-a3f7-544f442594d7" />
+
 **iptables**
+
 ```
 # SSH brute force protection
 iptables -A INPUT -p tcp --dport 22 -m recent --name SSH --set
@@ -362,14 +368,15 @@ iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 
 
  ## Hardening server
- sudo systemctl list-units --type=service --state=running: xem dịch vụ đang chạy
+ sudo systemctl list-units --type=service --state=running: xem dịch vụ đang chạy   
  <img width="795" height="361" alt="{0506C1CE-50CF-4ADC-98E4-79A2E3CBB5F8}" src="https://github.com/user-attachments/assets/1de94f7f-99ce-42b0-8812-c8da0f05fa69" />
-sudo systemctl disable --now xxx avahi-daemon bluetooth: Tắt các dịch vụ không cần
-Bật tự động cập nhật bảo mật  
+sudo systemctl disable --now xxx avahi-daemon bluetooth: Tắt các dịch vụ không cần  
+Bật tự động cập nhật bảo mật    
 sudo apt install unattended-upgrades -y  
 sudo dpkg-reconfigure --priority=low unattended-upgrades  
 <img width="474" height="115" alt="{76370678-419D-402E-B8FC-08116DF71371}" src="https://github.com/user-attachments/assets/18d51037-a88d-4461-a20d-42901e0008d9" />
-sudo apt install lynis -y && sudo lynis audit system: check lỗ hổng 
+
+sudo apt install lynis -y && sudo lynis audit system: check lỗ hổng   
 <img width="803" height="398" alt="{9CB003FE-F735-401B-80C1-4DE94E3D14D3}" src="https://github.com/user-attachments/assets/fe8eb29e-b952-427f-9338-c968d84d8d63" />
 
 ## Xử lí lỗ hổng 
@@ -455,3 +462,58 @@ sudo systemctl restart apache2
 
 **XSS**
 XSS khác SQLi ở chỗ: hacker không tấn công server mà tấn công trình duyệt của người dùng khác thông qua server của bạn  
+
+
+---
+# So sánh Web Server vs Application Server
+Web server (Nginx, Apache) chuyên phục vụ nội dung tĩnh: các file HTML, CSS, JavaScript, hình ảnh, video, font,… được lưu sẵn trên đĩa. Khi client yêu cầu một file, web server đọc thẳng từ disk và trả về ngay cho client mà không cần xử lý thêm. Kết quả trả về diễn ra gần như ngay lập tức   
+* Ví dụ, khi client yêu cầu /logo.png thì Nginx chỉ cần tìm file trên đĩa và gửi ảnh đó về—không có mã nghiệp vụ nào phải chạy.
+* Đối tượng phục vụ: HTML/CSS/JS đã build, images (JPG/PNG/SVG/etc.), video (MP4/WebM), tài liệu (PDF/ZIP), font (WOFF2) và các SPA frontend đã đóng gói sẵn (React, Vue, Angular build). Đây đều là “nội dung pre-built” – cùng một nội dung được trả về cho mọi người dùng  
+* Ưu điểm:
+  * Phục vụ cực nhanh, tốn ít CPU/RAM  
+  * Dễ dàng sử dụng cache (Cache-Control, CDN, proxy cache) để giảm tải thêm.   
+  * Ví dụ cấu hình Nginx phục vụ tệp tĩnh và cấu hình cache header:
+```
+server {
+    root /var/www/html;
+    location ~* \.(jpg|png|css|js|woff2)$ {
+        expires 7d;                      # Browser cache trong 7 ngày
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+}
+```
+Đoạn cấu hình trên giúp Nginx trực tiếp gửi file đến client và bảo trình duyệt cache lâu dài, giúp tăng tốc độ tải trang
+
+Application Server dùng khi nội dung cần xử lý động, ví dụ phụ thuộc vào dữ liệu trong database hoặc biến theo người dùng. Các ứng dụng backend (Node.js, PHP-FPM, Django, Rails, Java on Tomcat/Jetty, v.v.) sẽ chạy mã để sinh ra phản hồi trên cơ sở dữ liệu đầu vào, logic nghiệp vụ, hay trạng thái session.  
+Đối tượng phục vụ: Các API động, đăng nhập/đăng ký, trang web render server-side (Drupal, Wordpress, Django, Rails), ứng dụng real-time/WebSocket, chức năng nghiệp vụ phức tạp (tính toán, truy vấn DB). Nội dung trả về thay đổi tùy mỗi request hoặc mỗi user  
+* Ví dụ : Node.js cho API/Realtime; PHP-FPM cho website động; Django/Rails cho web apps.  
+* Quá trình điển hình: Khi client gửi request động như POST /api/login, application server nhận, xử lý nghiệp vụ (kiểm tra DB, tạo JWT, v.v.), rồi trả kết quả về. Mỗi request có thể cho kết quả khác nhau, nên không thể cache tĩnh như file tĩnh  
+
+Tóm lại, web server chỉ “chuyên” phục vụ file tĩnh một cách nhanh nhất, trong khi application server chịu trách nhiệm về logic nghiệp vụ, kết nối DB, xác thực người dùng. Nginx/Apache thường không tự sinh nội dung động mà sẽ chuyển các request này đến một ứng dụng phía sau
+
+Kiến trúc thực tế 
+```
+Client → Nginx (192.168.136.131:80)
+         ├─ /assets/* → (Phục vụ file tĩnh ngay, từ disk)   ← Web server
+         ├─ /api/*    → (Forward đến Node.js API on localhost:3000) ← App server
+         └─ /         → (Proxy tới pool Apache backend)       ← Reverse proxy / Load balancer
+                      ┌─────────────────────┐    ┌─────────────────────┐
+                      │ Apache Backend 1    │    │ Apache Backend 2    │
+                      │ 192.168.136.131:8080│    │ 192.168.136.136:80  │
+                      └─────────────────────┘    └─────────────────────┘
+
+```
+
+So sánh tổng 
+|Tiêu chí |webserver|application|
+|:---|:---|:---|
+|Chức năng|Phục vụ file tĩnh từ disk (HTML, CSS, JS, hình ảnh, media…)| Xử lý logic nghiệp vụ, tạo nội dung động (API, authentication, SSR)|
+|Tốc độ	| Cực nhanh |Chậm hơn |
+|CPU/RAM	| Rất thấp |	Cao hơn |
+|Phục vụ	| HTML/CSS/JS, ảnh, tài liệu, SPA builds	| API trả JSON/XML, trang động render server-side |
+|Thay đổi theo user |	 Không | Có (phụ thuộc user, thời gian, dữ liệu ứng dụng)
+
+---
+# Lỗi 403, 404, 500 và cách khắc phục.
+Lỗi 403 : Server nhận được request, hiểu bạn muốn gì, nhưng chủ động từ chối vì quyền truy cập không hợp lệ. Nguyên nhân nằm ở 3 tầng: permission hệ thống file, cấu hình web server, hoặc firewall/rule chặn IP.  
