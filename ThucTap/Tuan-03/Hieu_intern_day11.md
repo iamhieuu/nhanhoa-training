@@ -516,4 +516,22 @@ So sánh tổng
 
 ---
 # Lỗi 403, 404, 500 và cách khắc phục.
-Lỗi 403 : Server nhận được request, hiểu bạn muốn gì, nhưng chủ động từ chối vì quyền truy cập không hợp lệ. Nguyên nhân nằm ở 3 tầng: permission hệ thống file, cấu hình web server, hoặc firewall/rule chặn IP.  
+Lỗi 403 : Server hiểu request của bạn, nhưng từ chối phục vụ vì không đủ quyền. File có đó nhưng Nginx/PHP-FPM không được phép đọc. Trong LEMP stack, lỗi này xảy ra ở nhiều tầng: quyền file hệ thống, cấu hình Nginx, hoặc SELinux/AppArmor.  
+
+## 1. Sai quyền
+Nginx chạy với user www-data. Nếu file trong /var/www/html/ không cho phép www-data đọc, Nginx sẽ trả về 403. Quyền thư mục phải là 755 (executable = có thể duyệt vào), file phải là 644 (readable).  
+* Chẩn đoán: xem quyền hiện tại  
+ls -la /var/www/html/  
+stat /var/www/html/index.php  
+
+* Xem Nginx đang chạy với user nào
+ps aux | grep nginx  
+
+* www-data là user/group mặc định của Nginx trên Ubuntu
+sudo chown -R www-data:www-data /var/www/html/  
+
+* Thư mục cần 755: owner đọc/ghi/thực thi, group+other chỉ đọc/thực thi  
+sudo find /var/www/html -type d -exec chmod 755 {} \;  
+
+* File cần 644: owner đọc/ghi, group+other chỉ đọc  
+sudo find /var/www/html -type f -exec chmod 644 {} \;  
