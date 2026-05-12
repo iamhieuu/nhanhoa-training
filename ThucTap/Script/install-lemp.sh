@@ -55,7 +55,6 @@ php-mbstring \
 php-xml \
 php-zip \
 php-soap \
-php-opcache \
 php-imagick \
 curl \
 wget \
