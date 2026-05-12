@@ -42,26 +42,21 @@ apt update -y
 apt upgrade -y
 
 info "Installing packages..."
+PHP_VERSION="8.4"
+
 apt install -y \
-nginx \
-mysql-server \
-php \
-php-fpm \
-php-cli \
-php-mysql \
-php-curl \
-php-gd \
-php-mbstring \
-php-xml \
-php-zip \
-php-soap \
-php-imagick \
-curl \
-wget \
-zip \
-unzip \
-ufw \
-dos2unix
+php${PHP_VERSION} \
+php${PHP_VERSION}-fpm \
+php${PHP_VERSION}-cli \
+php${PHP_VERSION}-mysql \
+php${PHP_VERSION}-curl \
+php${PHP_VERSION}-gd \
+php${PHP_VERSION}-mbstring \
+php${PHP_VERSION}-xml \
+php${PHP_VERSION}-zip \
+php${PHP_VERSION}-soap \
+php${PHP_VERSION}-opcache \
+php${PHP_VERSION}-imagick
 
 success "Packages installed"
 
