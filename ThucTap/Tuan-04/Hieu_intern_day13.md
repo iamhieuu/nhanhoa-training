@@ -1,4 +1,4 @@
-<img width="448" height="187" alt="{B390F2A5-E529-4066-9FD8-A355351F19E0}" src="https://github.com/user-attachments/assets/3eaa08e9-b69b-47e3-842e-62735813d097" /># Báo cáo thực tập ngày 13 - Xu hướng hiện đại, công cụ hỗ trợ
+# Báo cáo thực tập ngày 13 - Xu hướng hiện đại, công cụ hỗ trợ
 
 ## Serverless, Container, Edge computing
 ### 1. Serverless
