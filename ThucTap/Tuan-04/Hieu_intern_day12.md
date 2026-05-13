@@ -442,6 +442,108 @@ server {
         root /var/www/html/errors;
         internal;
     }
+}
+```
+**500**: Server gặp lỗi bên trong khi xử lý request — một điều gì đó đã xảy ra không mong muốn mà server không biết xử lý thế nào. Trong LEMP, 500 thường do: lỗi code PHP, lỗi cú pháp, PHP-FPM crash, MySQL quá tải, hoặc thiếu quyền ghi file. Đây là lỗi do server, không phải client.  
+*Quy tắc vàng khi debug 500:* Nginx chỉ hiển thị "500 Internal Server Error" chung chung cho user — để bảo mật. Chi tiết lỗi thật sự nằm trong error log. Luôn đọc log đầu tiên.
+```
+# Xem 50 dòng cuối error log Nginx
+sudo tail -50 /var/log/nginx/error.log
+
+# Xem log PHP-FPM (lỗi PHP thường ở đây)
+sudo tail -50 /var/log/php8.1-fpm.log
+
+# Xem log MySQL
+sudo tail -50 /var/log/mysql/error.log
+
+# Theo dõi realtime khi reproduce lỗi
+sudo tail -f /var/log/nginx/error.log /var/log/php8.1-fpm.log
+```
+1. Lỗi PHP - Syntax error, Fatal error, Exception
+PHP-FPM gặp lỗi trong code (parse error, undefined variable, class not found...) và crash. PHP-FPM báo lỗi 500 về Nginx. Mặc định PHP tắt hiển thị lỗi trên browser (production) — phải bật tạm để debug.
+sudo nano /etc/php/8.1/fpm/php.ini  
+  
+```
+# Tìm và sửa các dòng này
+display_errors = On        # Hiển thị lỗi trên browser
+display_startup_errors = On
+log_errors = On           # Ghi lỗi vào log file
+error_log = /var/log/php_errors.log
+error_reporting = E_ALL   # Báo cáo tất cả loại lỗi
+sudo systemctl restart php8.1-fpm
 ```
 
-}
+2. PHP-FPM hết worker - 502/500 dưới tải cao
+ PHP-FPM quản lý một "pool" (nhóm) các tiến trình PHP. Khi số request đồng thời vượt quá số worker, request phải chờ hoặc bị từ chối → 500/502. Cần tăng số worker hoặc tối ưu code để worker xử lý nhanh hơn.  
+sudo nano /etc/php/8.1/fpm/pool.d/www.conf: check pool và woker
+```
+# Cấu hình pool PHP-FPM tối ưu cho server 2GB RAM
+[www]
+user = www-data
+group = www-data
+
+# pm = process manager
+# dynamic: số worker tự điều chỉnh theo tải 
+pm = dynamic
+
+# Số worker tối đa — tính: (RAM_available - RAM_system) / RAM_per_worker
+# Ví dụ: (2048MB - 512MB) / 30MB ≈ 50 workers
+pm.max_children = 50
+
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 15
+
+# Restart worker sau 500 request (chống memory leak)
+pm.max_requests = 500
+
+# Hiển thị status PHP-FPM
+pm.status_path = /fpm-status
+sudo systemctl restart php8.1-fpm
+```
+3. Mysql kết nối thất bại- Too many connection
+MySQL có giới hạn số kết nối đồng thời (max_connections). Mặc định là 151. Khi ứng dụng PHP mở quá nhiều kết nối (mỗi request mở một kết nối mới mà không đóng), MySQL từ chối kết nối mới → PHP báo lỗi 500.
+
+```
+# Kiểm tra số kết nối hiện tại đến MySQL
+sudo mysql -u root -p
+mysql> SHOW STATUS LIKE 'Threads_connected';
+mysql> SHOW STATUS LIKE 'Max_used_connections';
+mysql> SHOW PROCESSLIST;
+# Nếu Threads_connected gần bằng max_connections → cần tăng giới hạn
+mysql> SHOW VARIABLES LIKE 'max_connections';
+```
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf: tăng số lượng connection
+```
+[mysqld]
+# Tăng số kết nối tối đa
+max_connections = 500
+
+# Thời gian chờ trước khi đóng kết nối idle (giây)
+wait_timeout = 60
+interactive_timeout = 60
+
+# Kích thước bộ đệm kết nối
+thread_cache_size = 16
+sudo systemctl restart mysql
+ ```
+
+4. Thiếu quyền ghi - Storage, cache, session
+ PHP cần quyền ghi vào thư mục để lưu: session (/var/lib/php/sessions), cache (Laravel: storage/framework/cache), log (storage/logs). Nếu www-data không có quyền ghi, PHP ném exception → 500.
+```
+# Laravel: cấp quyền cho thư mục storage và bootstrap/cache
+sudo chown -R www-data:www-data /var/www/html/storage
+sudo chown -R www-data:www-data /var/www/html/bootstrap/cache
+sudo chmod -R 775 /var/www/html/storage
+sudo chmod -R 775 /var/www/html/bootstrap/cache
+
+# Kiểm tra quyền session PHP
+ls -la /var/lib/php/sessions/
+# Nên là: drwx-wx-wt root www-data
+
+# Xóa cache cũ của Laravel nếu bị lỗi
+cd /var/www/html
+sudo -u www-data php artisan cache:clear
+sudo -u www-data php artisan config:clear
+sudo -u www-data php artisan view:clear
+```
