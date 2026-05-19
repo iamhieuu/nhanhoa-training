@@ -514,6 +514,8 @@ Test:
 ```
 curl http://localhost:9090/-/ready
 ```
+<img width="318" height="41" alt="{EAB3BFA8-FCA5-4110-A6D7-C2280BFC7564}" src="https://github.com/user-attachments/assets/0572f161-6ccd-443f-9bbf-dc3147a89700" />
+<img width="959" height="471" alt="{DBB6A716-B07E-4533-AD14-5CFB4A3C811C}" src="https://github.com/user-attachments/assets/91334f79-fb35-488a-b97d-a8472cc370d2" />
 
 Cài Alermanager
 ```
@@ -546,6 +548,7 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 ```
+<img width="955" height="476" alt="{EF3B76E0-6831-4BF4-A3B1-AD67E014DAA9}" src="https://github.com/user-attachments/assets/f5b91824-0409-429b-a41a-b40a5f631ba6" />
 
 Cài Grafana
 ```
@@ -556,6 +559,15 @@ sudo apt-get install -f -y
 sudo systemctl enable --now grafana-server
 # Grafana: http://192.168.136.131:3000  (admin / admin)
 ```
+
+* Thêm Datasource
+  * Connections → Data Sources → Add → Prometheus
+* Prometheus URL
+ * http://localhost:9090 → Save & Test 
+* Import dashboard
+ * Dashboards → Import → nhập ID → Load → Import
+
+<img width="960" height="469" alt="{5EAF2C90-981C-4713-A720-F9A998FCA463}" src="https://github.com/user-attachments/assets/247b8fdf-1807-4b8a-be63-5f9860475e98" />
 
 node_exporter (tất cả 4 node)
 ```
