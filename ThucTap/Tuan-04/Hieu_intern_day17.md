@@ -556,3 +556,87 @@ sudo apt-get install -f -y
 sudo systemctl enable --now grafana-server
 # Grafana: http://192.168.136.131:3000  (admin / admin)
 ```
+
+node_exporter (tất cả 4 node)
+```
+sudo useradd --no-create-home --shell /bin/false node_exporter 2>/dev/null
+cd /tmp
+sudo wget https://github.com/prometheus/node_exporter/releases/download/v1.11.1/node_exporter-1.11.1.linux-amd64.tar.gz
+sudo tar xf node_exporter-1.11.1.linux-amd64.tar.gz
+sudo cp node_exporter-1.11.1.linux-amd64/node_exporter /usr/local/bin/
+sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
+```
+sudo nano /etc/systemd/system/node_exporter.service 
+```
+[Unit]
+Description=Node Exporter
+After=network.target
+[Service]
+User=node_exporter
+ExecStart=/usr/local/bin/node_exporter --web.listen-address=:9100
+Restart=always
+[Install]
+WantedBy=multi-user.target
+```
+Reload và check
+```
+sudo systemctl daemon-reload && sudo systemctl enable --now node_exporter
+curl -s http://192.168.136.145:9100/metrics | head
+```
+redis_exporter + mysqld_exporter (web-02)
+ * redis_exporter
+````
+cd /tmp
+sudo wget https://github.com/oliver006/redis_exporter/releases/download/v1.83.0/redis_exporter-v1.83.0.linux-amd64.tar.gz
+sudo tar xf redis_exporter-v1.83.0.linux-amd64.tar.gz
+sudo cp redis_exporter-v1.83.0.linux-amd64/redis_exporter /usr/local/bin/
+````
+sudo nano /etc/systemd/system/redis_exporter.service
+````
+[Unit]
+Description=Redis Exporter
+After=network.target
+[Service]
+ExecStart=/usr/local/bin/redis_exporter --redis.addr=redis://127.0.0.1:6379 --redis.password=redis_2026 --web.listen-address=:9121
+Restart=always
+[Install]
+WantedBy=multi-user.target
+````
+
+ * mysqld_exporter
+````
+sudo wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.19.0/mysqld_exporter-0.19.0.linux-amd64.tar.gz
+sudo tar xf mysqld_exporter-0.19.0.linux-amd64.tar.gz
+sudo cp mysqld_exporter-0.19.0.linux-amd64/mysqld_exporter /usr/local/bin/
+````
+````
+sudo mysql -u root -p -e "
+CREATE USER IF NOT EXISTS 'exporter'@'localhost' IDENTIFIED BY 'exp_pass';
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';
+FLUSH PRIVILEGES;"
+
+sudo bash -c 'printf "[client]
+user=exporter
+password=exp_pass
+" > /etc/.mysqld_exporter.cnf'
+sudo chmod 600 /etc/.mysqld_exporter.cnf
+````
+
+sudo nano /etc/systemd/system/mysqld_exporter.service 
+````
+[Unit]
+Description=MySQL Exporter
+After=network.target
+[Service]
+ExecStart=/usr/local/bin/mysqld_exporter --config.my-cnf=/etc/.mysqld_exporter.cnf --web.listen-address=:9104
+Restart=always
+[Install]
+WantedBy=multi-user.target
+````
+sudo systemctl daemon-reload  
+sudo systemctl enable --now redis_exporter mysqld_exporter       
+Check
+```
+curl -s http://localhost:9121/metrics | grep redis_up
+curl -s http://localhost:9104/metrics | grep mysql_up
+```
