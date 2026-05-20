@@ -207,8 +207,10 @@ ip addr show | grep 192.168.136.100
 sudo tail -f /var/log/keepalived-notify.log
 ```
 Máy edge-01 Master đã nhận được và giữ VIP
-<img width="591" height="116" alt="{E407B8A0-DCA5-4176-A581-A96E41DAFF23}" src="https://github.com/user-attachments/assets/acd555be-0703-4a2d-829d-aa5f713b8878" />
-Máy edge-02 Backup chưa có VIP
+<img width="591" height="116" alt="{E407B8A0-DCA5-4176-A581-A96E41DAFF23}" src="https://github.com/user-attachments/assets/acd555be-0703-4a2d-829d-aa5f713b8878" />  
+
+Máy edge-02 Backup chưa có VIP  
+
 <img width="529" height="182" alt="{C8EF45EA-3B2C-40DF-AFF4-85D92DAD20E9}" src="https://github.com/user-attachments/assets/75619082-e59d-4116-ae20-5442c54c24d8" />
 
 #### 4. HAProxy (edge-01 & edge-02)
@@ -262,7 +264,9 @@ backend web_servers
     server web02 192.168.136.134:80 check inter 2s rise 2 fall 3
 ```
 <img width="417" height="369" alt="{5A42F5D0-D87C-498B-BE3C-4D92C9438894}" src="https://github.com/user-attachments/assets/36129ce3-34eb-4fad-aea2-05e3fd060aba" />
-Kể từ các phiên bản HAProxy mới, nhà phát triển đã tích hợp sẵn một endpoint xuất dữ liệu thô chuẩn Prometheus mà không cần phải cài thêm công cụ trung gian (haproxy_exporter). Chúng ta mở riêng một cổng ẩn để máy chủ Prometheus central từ xa có thể kéo các chỉ số (Băng thông, số lượng request/giây, trạng thái các node backend) về lưu trữ. 
+
+Kể từ các phiên bản HAProxy mới, nhà phát triển đã tích hợp sẵn một endpoint xuất dữ liệu thô chuẩn Prometheus mà không cần phải cài thêm công cụ trung gian (haproxy_exporter). Chúng ta mở riêng một cổng ẩn để máy chủ Prometheus central từ xa có thể kéo các chỉ số (Băng thông, số lượng request/giây, trạng thái các node backend) về lưu trữ.  
+
 ```
 frontend prometheus_metrics
     bind 0.0.0.0:9101       
@@ -271,7 +275,8 @@ frontend prometheus_metrics
     no log
 ```
 #### 5. Apache + PHP (web-01 & web-02)
-Cài công cụ quản lý, thêm ppa/php, cài Apache + PHP + extensions
+Cài công cụ quản lý, thêm ppa/php, cài Apache + PHP + extensions  
+
 ```
 sudo apt install -y software-properties-common
 sudo add-apt-repository ppa:ondrej/php -y
@@ -354,7 +359,7 @@ sudo apt install -y mariadb-client redis-tools
 mysql -u iamhieu -p -h 192.168.136.134 wordpress_db -e "SHOW TABLES;"
 ```
 
-Cài đặt Redis trên web 02
+**Cài đặt Redis trên web 02**
 ```
 sudo apt install -y redis-server
 
@@ -367,10 +372,14 @@ requirepass redis_2026
 maxmemory 256mb
 maxmemory-policy allkeys-lru
 ```
-Test từ web-01
+
+Test từ web-01  
+
 <img width="613" height="56" alt="{D7241FB2-2022-40B2-B7ED-6AC9DFBD1D7C}" src="https://github.com/user-attachments/assets/6c1e891b-bd4a-4dc7-b238-23195a49b9d8" />
 
-7. WordPress (web-01 & web-02)
+**7. WordPress (web-01 & web-02)**
+
+
 ```
 cd /var/www/html
 # Xóa file mặc định của Apache
@@ -424,7 +433,7 @@ sudo rm /var/www/html/info.php   # xóa sau khi test
 <img width="951" height="478" alt="{F117E332-5949-4683-AA91-5264AAD1F01F}" src="https://github.com/user-attachments/assets/a742ceaf-be3f-40d5-8eac-9b9690b367e6" />
 
 #### 8. Prometheus + Alertmanager + Grafana
-* Cài prometheus
+**Cài prometheus**
 Prometheus Server sẽ chạy ngầm, đóng vai trò lưu trữ dữ liệu chuỗi thời gian và liên tục tính toán các biểu thức biểu đồ (PromQL). Nếu một biểu thức vượt ngưỡng an toàn (ví dụ CPU > 85%), nó sẽ tự động kích hoạt trạng thái báo động và bắn dữ liệu sang Alertmanager
 ```
 sudo useradd --no-create-home --shell /bin/false prometheus 2>/dev/null
@@ -532,7 +541,8 @@ curl http://localhost:9090/-/ready
 <img width="318" height="41" alt="{EAB3BFA8-FCA5-4110-A6D7-C2280BFC7564}" src="https://github.com/user-attachments/assets/0572f161-6ccd-443f-9bbf-dc3147a89700" />
 <img width="959" height="471" alt="{DBB6A716-B07E-4533-AD14-5CFB4A3C811C}" src="https://github.com/user-attachments/assets/91334f79-fb35-488a-b97d-a8472cc370d2" />
 
-Cài Alermanager
+**Cài Alermanager**
+
 Khi Prometheus phát hiện lỗi, nó sẽ đẩy hàng loạt cảnh báo thô sang đây. Alertmanager có nhiệm vụ làm bộ điều phối và lọc nhiễu cảnh báo
 
 ```
@@ -547,7 +557,9 @@ cd alertmanager-0.26.0.linux-amd64
 sudo cp alertmanager amtool /usr/local/bin/
 sudo chown alertmanager:alertmanager /usr/local/bin/alertmanager /usr/local/bin/amtool
 ```
+
 sudo nano /etc/systemd/system/alertmanager.service
+
 ```
 [Unit]
 Description=Alertmanager
@@ -566,8 +578,11 @@ Restart=always
 WantedBy=multi-user.target
 ```
 <img width="955" height="476" alt="{EF3B76E0-6831-4BF4-A3B1-AD67E014DAA9}" src="https://github.com/user-attachments/assets/f5b91824-0409-429b-a41a-b40a5f631ba6" />
-Cài Alert_rules
-sudo nano /etc/prometheus/alert_rules.yml
+
+**Cài Alert_rules**
+
+sudo nano /etc/prometheus/alert_rules.yml  
+
 ```
 groups:
   - name: node_alerts
@@ -627,7 +642,8 @@ curl -X POST http://localhost:9090/-/reload
 ```
 <img width="959" height="478" alt="{FCC628AA-8D1E-42A9-B690-E296670EA79C}" src="https://github.com/user-attachments/assets/e8fb2684-de89-4fbd-b23c-3f37068fa6a7" />
 
-Cài đặt báo về gmail  
+**Cài đặt báo về gmail**
+
 Thiết lập cấu hình tích hợp hệ thống thư điện tử SMTP của Google. Khi Alertmanager nhận được cảnh báo thuộc nhóm critical, nó sẽ ngay lập tức đăng nhập vào hệ thống mail và bắn thông báo khẩn cấp cho người quản trị
 sudo nano /etc/alertmanager/alertmanager.yml
 
@@ -701,7 +717,8 @@ inhibit_rules:
       alertname: 'HighCPU|HighMemory|DiskFull'
     equal: ['instance']
 ```
-Cài Grafana
+**Cài Grafana**
+
 ```
 cd /tmp
 sudo wget https://dl.grafana.com/oss/release/grafana_13.0.1_amd64.deb
@@ -720,7 +737,8 @@ sudo systemctl enable --now grafana-server
 
 <img width="960" height="469" alt="{5EAF2C90-981C-4713-A720-F9A998FCA463}" src="https://github.com/user-attachments/assets/247b8fdf-1807-4b8a-be63-5f9860475e98" />
 
-node_exporter (tất cả 4 node)
+**node_exporter (tất cả 4 node)**
+
 Nhằm mục đích nắm bắt được tình trạng sức khỏe phần cứng (Tỷ lệ tải CPU, dung lượng RAM còn trống, tốc độ đọc ghi ổ đĩa, băng thông card mạng ens33) của chính các máy chủ Edge để đẩy về Grafana vẽ biểu đồ.  
 ```
 sudo useradd --no-create-home --shell /bin/false node_exporter 2>/dev/null
@@ -749,8 +767,10 @@ curl -s http://192.168.136.145:9100/metrics | head
 ```
  <img width="832" height="484" alt="{2D10D2EC-B156-4DF7-8106-126F3D603990}" src="https://github.com/user-attachments/assets/0ec171a1-68d5-4f9a-924f-7b4a585ab6f5" />
 
-redis_exporter + mysqld_exporter (web-02)
+**redis_exporter + mysqld_exporter (web-02)**
+
  * redis_exporter
+
 Do hệ thống HA Web chạy WordPress cần dùng Redis làm Object Cache để giảm tải cho Database. Chúng ta cài đặt công cụ này để thu thập tỷ lệ trúng cache (keyspace_hits vs keyspace_misses), lượng RAM tiêu thụ của Redis xem có bị phình to quá mức gây crash hệ thống không.  
 ````
 cd /tmp
@@ -775,7 +795,9 @@ curl -s http://localhost:9121/metrics | grep redis_up
 ```
 <img width="561" height="475" alt="{B260BB1D-FC3A-4987-B76D-710E515BB347}" src="https://github.com/user-attachments/assets/19c8b498-5eea-40e3-8788-6c942bc6f7eb" />
 
- * mysqld_exporter
+**mysqld_exporter**
+
+* Cài đặt mysql_exporter
 ````
 sudo wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.19.0/mysqld_exporter-0.19.0.linux-amd64.tar.gz
 sudo tar xf mysqld_exporter-0.19.0.linux-amd64.tar.gz
@@ -794,7 +816,8 @@ password=exp_pass
 sudo chmod 600 /etc/.mysqld_exporter.cnf
 ````
 
-sudo nano /etc/systemd/system/mysqld_exporter.service 
+sudo nano /etc/systemd/system/mysqld_exporter.service
+
 ````
 [Unit]
 Description=MySQL Exporter
