@@ -736,6 +736,14 @@ sudo systemctl enable --now grafana-server
 * Import dashboard
  * Dashboards → Import → nhập ID → Load → Import
 
+**ID Cộng Đồng**
+
+ * 12693: HAProxy
+ * 1860: Node Exporter full
+ * 14057: Mysql exporter
+ * 11692: Redis exporter
+
+
 <img width="960" height="469" alt="{5EAF2C90-981C-4713-A720-F9A998FCA463}" src="https://github.com/user-attachments/assets/247b8fdf-1807-4b8a-be63-5f9860475e98" />
 
 **node_exporter (tất cả 4 node)**
