@@ -6,7 +6,8 @@
 ## Tổng quan
 
 #### Sơ đồ kiến trúc hệ thống
-<img width="3484" height="3564" alt="image" src="https://github.com/user-attachments/assets/9d265c4b-78d5-43fd-942e-fc10eddd3573" />
+<img width="3676" height="3564" alt="image" src="https://github.com/user-attachments/assets/9702b116-3d97-4983-b35c-f8e2b07f43ba" />
+
 
 
 #### Bảng IP và dịch vụ
