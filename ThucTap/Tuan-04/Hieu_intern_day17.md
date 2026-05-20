@@ -6,7 +6,8 @@
 ## Tổng quan
 
 #### Sơ đồ kiến trúc hệ thống
-<img width="1240" height="200" alt="image" src="https://github.com/user-attachments/assets/f02ebb78-facb-4a42-b31b-0530f1dce4c1" />
+<img width="3484" height="3564" alt="image" src="https://github.com/user-attachments/assets/9d265c4b-78d5-43fd-942e-fc10eddd3573" />
+
 
 #### Bảng IP và dịch vụ
 
@@ -595,6 +596,8 @@ Reload và check
 sudo systemctl daemon-reload && sudo systemctl enable --now node_exporter
 curl -s http://192.168.136.145:9100/metrics | head
 ```
+ <img width="832" height="484" alt="{2D10D2EC-B156-4DF7-8106-126F3D603990}" src="https://github.com/user-attachments/assets/0ec171a1-68d5-4f9a-924f-7b4a585ab6f5" />
+
 redis_exporter + mysqld_exporter (web-02)
  * redis_exporter
 ````
@@ -614,6 +617,11 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 ````
+Check
+```
+curl -s http://localhost:9121/metrics | grep redis_up
+```
+<img width="561" height="475" alt="{B260BB1D-FC3A-4987-B76D-710E515BB347}" src="https://github.com/user-attachments/assets/19c8b498-5eea-40e3-8788-6c942bc6f7eb" />
 
  * mysqld_exporter
 ````
@@ -649,6 +657,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now redis_exporter mysqld_exporter       
 Check
 ```
-curl -s http://localhost:9121/metrics | grep redis_up
 curl -s http://localhost:9104/metrics | grep mysql_up
 ```
+<img width="759" height="466" alt="{3E93B90E-BE93-41F1-86FB-D1438BF2E71B}" src="https://github.com/user-attachments/assets/4655e8f9-992e-468a-957a-1e19cdcc5fc6" />
