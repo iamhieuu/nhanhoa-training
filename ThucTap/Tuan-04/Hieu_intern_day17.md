@@ -81,6 +81,7 @@ sudo nano /etc/hosts
 ```
 
 #### 2. SSL Certificate (edge-01 & edge-02)
+Mục đích để tối ưu hóa hiệu năng cho các máy chủ Web Backend (web-01, web-02), chúng ta áp dụng mô hình SSL Termination. Toàn bộ nhiệm vụ giải mã mã hóa HTTPS phức tạp sẽ được xử lý tập trung một lần duy nhất tại HAProxy. HAProxy yêu cầu file chứng chỉ phải được gộp chung (chứa cả mã Public Cert và Private Key) vào thành một file định dạng .pem.
 ```
 sudo mkdir -p /etc/ssl/haproxy
 
@@ -129,6 +130,8 @@ sysctl net.ipv4.ip_nonlocal_bind
 <img width="235" height="80" alt="{DBD86E95-9A00-4957-9D67-1FDC30F9E473}" src="https://github.com/user-attachments/assets/680e8a8f-c438-45b8-b4ce-e134cca04229" />
 
 * Cấu hình keepalived
+Máy edge-01 nhận trọng trách làm MASTER sở hữu độ ưu tiên (Priority) cao hơn, máy edge-02 đóng vai trò BACKUP. Hai máy liên tục bắt tay nhau qua cổng mạng ens33 với chu kỳ 1 giây.
+
   * Trên edge-01
 sudo nano /etc/keepalived/keepalived.conf
 ```
@@ -209,6 +212,8 @@ Máy edge-02 Backup chưa có VIP
 <img width="529" height="182" alt="{C8EF45EA-3B2C-40DF-AFF4-85D92DAD20E9}" src="https://github.com/user-attachments/assets/75619082-e59d-4116-ae20-5442c54c24d8" />
 
 #### 4. HAProxy (edge-01 & edge-02)
+Cấu hình này giúp HAProxy lắng nghe mọi yêu cầu HTTP (port 80) và HTTPS (port 443) đi vào IP ảo, tự động điều hướng traffic (Load Balancing) theo thuật toán Round Robin đến 2 máy chủ Backend (web-01, web-02). Ngoài ra, nó cũng kích hoạt trang Dashboard theo dõi trực quan và mở cổng xuất dữ liệu (Metrics) cho hệ thống Prometheus giám sát.  
+
 sudo apt install -y haproxy  
 sudo nano /etc/haproxy/haproxy.cfg
 ```
@@ -257,7 +262,14 @@ backend web_servers
     server web02 192.168.136.134:80 check inter 2s rise 2 fall 3
 ```
 <img width="417" height="369" alt="{5A42F5D0-D87C-498B-BE3C-4D92C9438894}" src="https://github.com/user-attachments/assets/36129ce3-34eb-4fad-aea2-05e3fd060aba" />
-
+Kể từ các phiên bản HAProxy mới, nhà phát triển đã tích hợp sẵn một endpoint xuất dữ liệu thô chuẩn Prometheus mà không cần phải cài thêm công cụ trung gian (haproxy_exporter). Chúng ta mở riêng một cổng ẩn để máy chủ Prometheus central từ xa có thể kéo các chỉ số (Băng thông, số lượng request/giây, trạng thái các node backend) về lưu trữ. 
+```
+frontend prometheus_metrics
+    bind 0.0.0.0:9101       
+    mode http
+    http-request use-service promo-services allow if { path /metrics }
+    no log
+```
 #### 5. Apache + PHP (web-01 & web-02)
 Cài công cụ quản lý, thêm ppa/php, cài Apache + PHP + extensions
 ```
@@ -413,6 +425,7 @@ sudo rm /var/www/html/info.php   # xóa sau khi test
 
 #### 8. Prometheus + Alertmanager + Grafana
 * Cài prometheus
+Prometheus Server sẽ chạy ngầm, đóng vai trò lưu trữ dữ liệu chuỗi thời gian và liên tục tính toán các biểu thức biểu đồ (PromQL). Nếu một biểu thức vượt ngưỡng an toàn (ví dụ CPU > 85%), nó sẽ tự động kích hoạt trạng thái báo động và bắn dữ liệu sang Alertmanager
 ```
 sudo useradd --no-create-home --shell /bin/false prometheus 2>/dev/null
 sudo mkdir -p /etc/prometheus /var/lib/prometheus
@@ -458,6 +471,7 @@ WantedBy=multi-user.target
 <img width="340" height="293" alt="{FC67F455-85B5-4697-A283-72CA4AB29101}" src="https://github.com/user-attachments/assets/9f203b75-0776-44f7-a31a-a050a3c2a63b" />
 
 Tạo config Prometheus:
+Cấu hình này giúp Prometheus biết phải đi đâu để kéo các chỉ số từ lớp Edge và lớp Backend về
 sudo nano /etc/prometheus/prometheus.yml
 
 ```
@@ -480,7 +494,7 @@ scrape_configs:
     static_configs:
       - targets:
           - '192.168.136.131:9100'
-          - '192.168.136.140:9100'
+          - '192.168.136.146:9100'
           - '192.168.136.145:9100'
           - '192.168.136.134:9100'
 
@@ -519,6 +533,8 @@ curl http://localhost:9090/-/ready
 <img width="959" height="471" alt="{DBB6A716-B07E-4533-AD14-5CFB4A3C811C}" src="https://github.com/user-attachments/assets/91334f79-fb35-488a-b97d-a8472cc370d2" />
 
 Cài Alermanager
+Khi Prometheus phát hiện lỗi, nó sẽ đẩy hàng loạt cảnh báo thô sang đây. Alertmanager có nhiệm vụ làm bộ điều phối và lọc nhiễu cảnh báo
+
 ```
 sudo useradd --no-create-home --shell /bin/false alertmanager 2>/dev/null
 sudo mkdir -p /etc/alertmanager /var/lib/alertmanager
@@ -550,7 +566,141 @@ Restart=always
 WantedBy=multi-user.target
 ```
 <img width="955" height="476" alt="{EF3B76E0-6831-4BF4-A3B1-AD67E014DAA9}" src="https://github.com/user-attachments/assets/f5b91824-0409-429b-a41a-b40a5f631ba6" />
+Cài Alert_rules
+sudo nano /etc/prometheus/alert_rules.yml
+```
+groups:
+  - name: node_alerts
+    rules:
+      - alert: NodeDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: '🔴 NODE DOWN: {{ $labels.instance }}'
+          description: 'Node {{ $labels.instance }} mất kết nối hơn 30 giây.'
 
+      - alert: HighCPU
+        expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '⚠️ CPU CAO: {{ $labels.instance }}'
+          description: 'CPU vượt 85% liên tục 5 phút. Hiện tại: {{ printf "%.1f" $value }}%'
+
+      - alert: HighMemory
+        expr: (1 - node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes) * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: '⚠️ RAM THẤP: {{ $labels.instance }}'
+          description: 'RAM còn trống dưới 10%.'
+
+      - alert: DiskFull
+        expr: (1 - node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: '💾 DISK ĐẦY: {{ $labels.instance }}'
+          description: 'Disk đã dùng {{ printf "%.1f" $value }}%.'
+
+  - name: haproxy_alerts
+    rules:
+      - alert: HAProxyBackendDown
+        expr: haproxy_backend_up == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: '🔴 HAPROXY BACKEND DOWN: {{ $labels.backend }}'
+          description: 'Backend {{ $labels.backend }} trên HAProxy bị DOWN.'
+```
+Check và reload cấu hình 
+```
+sudo promtool check rules /etc/prometheus/alert_rules.yml
+sudo promtool check config /etc/prometheus/prometheus.yml
+curl -X POST http://localhost:9090/-/reload
+```
+<img width="959" height="478" alt="{FCC628AA-8D1E-42A9-B690-E296670EA79C}" src="https://github.com/user-attachments/assets/e8fb2684-de89-4fbd-b23c-3f37068fa6a7" />
+
+Cài đặt báo về gmail  
+Thiết lập cấu hình tích hợp hệ thống thư điện tử SMTP của Google. Khi Alertmanager nhận được cảnh báo thuộc nhóm critical, nó sẽ ngay lập tức đăng nhập vào hệ thống mail và bắn thông báo khẩn cấp cho người quản trị
+sudo nano /etc/alertmanager/alertmanager.yml
+
+```
+global:
+  smtp_smarthost:     'smtp.gmail.com:587'
+  smtp_from:          'monitoring-system@gmail.com'
+  smtp_auth_username: 'tai-khoan-cua-ban@gmail.com'
+  smtp_auth_password: 'zmvigdkenyuuuyon'
+  smtp_require_tls:   true
+  smtp_hello:         'localhost'
+  resolve_timeout:    5m
+
+route:
+  group_by:        ['alertname', 'severity']
+  group_wait:      10s
+  group_interval:  5m
+  repeat_interval: 2h
+  receiver: 'gmail'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'gmail_critical'
+      group_wait: 5s
+      repeat_interval: 30m
+
+receivers:
+  - name: 'gmail'
+    email_configs:
+      - to:            'admin-quan-tri@gmail.com'
+        send_resolved: true
+        send_resolved: true
+        headers:
+          Subject: >-
+            {{ if eq .Status "firing" }}⚠️ FIRING{{ else }}✅ RESOLVED{{ end }}
+            [{{ .GroupLabels.alertname }}] {{ .CommonLabels.instance }}
+        html: |
+          <h3>{{ if eq .Status "firing" }}🔴 CẢNH BÁO{{ else }}✅ ĐÃ GIẢI QUYẾT{{ end }}</h3>
+          {{ range .Alerts }}
+          <b>Alert:</b> {{ .Annotations.summary }}<br>
+          <b>Chi tiết:</b> {{ .Annotations.description }}<br>
+          <b>Node:</b> {{ .Labels.instance }}<br>
+          <b>Mức độ:</b> {{ .Labels.severity }}<br>
+          <b>Thời gian:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }}<br><hr>
+          {{ end }}
+          <a href="http://192.168.136.131:3000">📊 Grafana Dashboard</a> &nbsp;|&nbsp;
+          <a href="http://192.168.136.131:9090/alerts">📡 Prometheus Alerts</a>
+
+  - name: 'gmail_critical'
+    email_configs:
+      - to:            'admin-quan-tri@gmail.com'
+        send_resolved: true
+        headers:
+          Subject: >-
+            🚨 CRITICAL [{{ .GroupLabels.alertname }}] {{ .CommonLabels.instance }}
+        html: |
+          <h2 style="color:red">🚨 SỰ CỐ NGHIÊM TRỌNG</h2>
+          {{ range .Alerts }}
+          <p><b>{{ .Annotations.summary }}</b><br>
+          {{ .Annotations.description }}<br>
+          Node: <code>{{ .Labels.instance }}</code><br>
+          Lúc: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+          {{ end }}
+          <a href="http://192.168.136.131:3000">Grafana</a> |
+          <a href="http://192.168.136.131:9090/alerts">Prometheus</a>
+
+inhibit_rules:
+  - source_match:
+      alertname: NodeDown
+    target_match_re:
+      alertname: 'HighCPU|HighMemory|DiskFull'
+    equal: ['instance']
+```
 Cài Grafana
 ```
 cd /tmp
@@ -571,6 +721,7 @@ sudo systemctl enable --now grafana-server
 <img width="960" height="469" alt="{5EAF2C90-981C-4713-A720-F9A998FCA463}" src="https://github.com/user-attachments/assets/247b8fdf-1807-4b8a-be63-5f9860475e98" />
 
 node_exporter (tất cả 4 node)
+Nhằm mục đích nắm bắt được tình trạng sức khỏe phần cứng (Tỷ lệ tải CPU, dung lượng RAM còn trống, tốc độ đọc ghi ổ đĩa, băng thông card mạng ens33) của chính các máy chủ Edge để đẩy về Grafana vẽ biểu đồ.  
 ```
 sudo useradd --no-create-home --shell /bin/false node_exporter 2>/dev/null
 cd /tmp
@@ -600,6 +751,7 @@ curl -s http://192.168.136.145:9100/metrics | head
 
 redis_exporter + mysqld_exporter (web-02)
  * redis_exporter
+Do hệ thống HA Web chạy WordPress cần dùng Redis làm Object Cache để giảm tải cho Database. Chúng ta cài đặt công cụ này để thu thập tỷ lệ trúng cache (keyspace_hits vs keyspace_misses), lượng RAM tiêu thụ của Redis xem có bị phình to quá mức gây crash hệ thống không.  
 ````
 cd /tmp
 sudo wget https://github.com/oliver006/redis_exporter/releases/download/v1.83.0/redis_exporter-v1.83.0.linux-amd64.tar.gz
