@@ -94,7 +94,9 @@ User  ftplab
 Password 123456a@
 ```
 <img width="489" height="245" alt="{E76B7EEE-8DFD-49E1-B887-8FE0E9861FE4}" src="https://github.com/user-attachments/assets/77231e76-5a19-4322-92b1-97a203c56d6e" />
+
 kết quả đạt được  
+
 <img width="590" height="312" alt="{263C556A-2F5E-4CE9-827C-97DB2967FDCE}" src="https://github.com/user-attachments/assets/a98ddebf-3636-426a-a152-bd990f228daa" />
 
 -----------------
@@ -112,5 +114,7 @@ kết quả đạt được
 <img width="415" height="316" alt="{050B0EA9-587D-4D95-819F-ED64E34963C7}" src="https://github.com/user-attachments/assets/78b1b5ad-1c7b-4dd6-8ba4-46c46181ab2b" />
 
 #### Trên máy client
+
 Vào file exporter, gõ ftp://IPSERVER
+
 <img width="577" height="307" alt="{AF87282D-07EA-49D7-B507-33CF746F4BEA}" src="https://github.com/user-attachments/assets/36d037d8-def0-4705-8787-53e678f1743e" />
