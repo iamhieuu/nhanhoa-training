@@ -118,3 +118,55 @@ kết quả đạt được
 Vào file exporter, gõ ftp://IPSERVER
 
 <img width="577" height="307" alt="{AF87282D-07EA-49D7-B507-33CF746F4BEA}" src="https://github.com/user-attachments/assets/36d037d8-def0-4705-8787-53e678f1743e" />
+
+----
+# Database Server
+
+## 1. Mô Hình Client-Server Trong Hệ Thống Database
+### 1.1 Tổng quan mô hình
+
+Mô hình Client-Server là kiến trúc nền tảng của hầu hết hệ thống database hiện đại. Trong mô hình này:  
+Client gửi request/query đến Database Server  
+Database Server xử lý request và trả kết quả  
+Hai thành phần có thể chạy trên hai máy vật lý khác nhau  
+
+### 1.2 Kiến trúc tổng quan
+``````
+┌─────────────────────────────────────────────────────────────────┐
+│                        NETWORK / LAN / WAN                     │
+│                                                                 │
+│   ┌──────────────┐    SQL Query / Request    ┌───────────────┐ │
+│   │    CLIENT    │ ────────────────────────► │ DATABASE      │ │
+│   │              │                           │ SERVER        │ │
+│   │ - Web App    │ ◄──────────────────────── │               │ │
+│   │ - API        │      Result / Data        │ - Query Engine│ │
+│   │ - BI Tool    │                           │ - Storage     │ │
+│   │ - Admin Tool │      Port 3306/5432       │ - Auth Module │ │
+│   └──────────────┘                           └───────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+``````
+1.3 Vai trò từng thành phần
+Client
+Client là phía gửi yêu cầu đến database server.  
+Nhiệm vụ:  
+* Gửi câu lệnh SQL
+* Nhận dữ liệu trả về
+* Hiển thị dữ liệu cho người dùng
+* Không trực tiếp lưu trữ dữ liệu
+
+Ví dụ:
+* NodeJS
+* DBeaver
+* Grafana
+* Metabase
+* Database Server
+
+
+Database Server là thành phần xử lý và lưu trữ dữ liệu.  
+Nhiệm vụ:  
+
+* Xử lý query
+* Quản lý transaction
+* Quản lý user và permission
+* Quản lý concurrency
+* Đọc/ghi dữ liệu trên disk
