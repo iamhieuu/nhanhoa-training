@@ -760,15 +760,114 @@ sudo systemctl enable --now grafana-server
 | `7362` | MySQL Overview | Queries · Connections · InnoDB |
  
 ---
-<img width="759" height="466" alt="{3E93B90E-BE93-41F1-86FB-D1438BF2E71B}" src="https://github.com/user-attachments/assets/4655e8f9-992e-468a-957a-1e19cdcc5fc6" />
-<img width="561" height="475" alt="{B260BB1D-FC3A-4987-B76D-710E515BB347}" src="https://github.com/user-attachments/assets/19c8b498-5eea-40e3-8788-6c942bc6f7eb" />
-
- <img width="832" height="484" alt="{2D10D2EC-B156-4DF7-8106-126F3D603990}" src="https://github.com/user-attachments/assets/0ec171a1-68d5-4f9a-924f-7b4a585ab6f5" />
-
-<img width="960" height="469" alt="{5EAF2C90-981C-4713-A720-F9A998FCA463}" src="https://github.com/user-attachments/assets/247b8fdf-1807-4b8a-be63-5f9860475e98" />
-
-<img width="959" height="478" alt="{FCC628AA-8D1E-42A9-B690-E296670EA79C}" src="https://github.com/user-attachments/assets/e8fb2684-de89-4fbd-b23c-3f37068fa6a7" />
-<img width="955" height="476" alt="{EF3B76E0-6831-4BF4-A3B1-AD67E014DAA9}" src="https://github.com/user-attachments/assets/f5b91824-0409-429b-a41a-b40a5f631ba6" />
-<img width="318" height="41" alt="{EAB3BFA8-FCA5-4110-A6D7-C2280BFC7564}" src="https://github.com/user-attachments/assets/0572f161-6ccd-443f-9bbf-dc3147a89700" />
-<img width="959" height="471" alt="{DBB6A716-B07E-4533-AD14-5CFB4A3C811C}" src="https://github.com/user-attachments/assets/91334f79-fb35-488a-b97d-a8472cc370d2" />
-<img width="340" height="293" alt="{FC67F455-85B5-4697-A283-72CA4AB29101}" src="https://github.com/user-attachments/assets/9f203b75-0776-44f7-a31a-a050a3c2a63b" />
+ 
+## 10. Kết quả kiểm tra
+ 
+### 10.1 Kiểm tra toàn bộ dịch vụ
+ 
+```bash
+# Chạy trên edge-01
+for svc in haproxy keepalived prometheus grafana-server alertmanager node_exporter; do
+  STATUS=$(systemctl is-active $svc 2>/dev/null || echo "not-found")
+  printf "%-20s %s\n" "$svc" "$STATUS"
+done
+```
+ 
+### 10.2 Test Load Balancing — roundrobin
+ 
+```bash
+# Gửi 6 request liên tiếp — phải thấy xen kẽ web-01 / web-02
+for i in {1..6}; do
+  curl -sk https://192.168.136.100/health.html -o /dev/null \
+    -w "Request $i → HTTP %{http_code}\n"
+done
+```
+ 
+### 10.3 Test Keepalived Failover
+ 
+```bash
+# Bước 1: Xác nhận VIP trên edge-01
+ip addr show | grep 192.168.136.100
+ 
+# Bước 2: Giả lập sự cố — tắt Keepalived trên edge-01
+sudo systemctl stop keepalived
+ 
+# Bước 3: Chờ 3 giây, kiểm tra edge-02 đã tiếp quản VIP chưa
+sleep 3
+# (Chạy trên edge-02)
+ip addr show | grep 192.168.136.100
+# Kết quả mong đợi: inet 192.168.136.100/24 scope global ens33:vip
+ 
+# Bước 4: Website vẫn online
+curl -sk https://192.168.136.100/health.html
+# Kết quả mong đợi: OK
+ 
+# Bước 5: Khôi phục
+sudo systemctl start keepalived    # Trên edge-01
+```
+ 
+### 10.4 Test Alert Gmail
+ 
+```bash
+# Tắt node_exporter trên web-01 để trigger NodeDown alert
+sudo systemctl stop node_exporter    # Trên web-01
+ 
+# Theo dõi trên Prometheus (edge-01)
+# T+30s: NodeDown → PENDING
+# T+60s: NodeDown → FIRING → Alertmanager gửi email
+# → Kiểm tra hộp thư Gmail
+ 
+# Bật lại → nhận email RESOLVED (~90 giây sau)
+sudo systemctl start node_exporter
+```
+ 
+---
+ 
+## 11. Lỗi gặp phải và cách khắc phục
+ 
+| STT | Lỗi | Nguyên nhân | Cách khắc phục |
+|-----|-----|-------------|----------------|
+| 1 | `php8.1-fpm has no installation candidate` | Ubuntu 22.04 không có PHP 8.1 trong repo mặc định | Thêm PPA `ppa:ondrej/php` trước khi cài |
+| 2 | `HAProxy: unable to stat SSL certificate` | Quên tạo file `cert.pem` trước khi khởi động HAProxy | Tạo cert và ghép `cat ha.crt ha.key > cert.pem` |
+| 3 | Vào IP vẫn thấy trang Apache mặc định | `000-default.conf` vẫn bật / file `index.html` còn tồn tại | `sudo a2dissite 000-default.conf && sudo rm -f /var/www/html/index.html` |
+| 4 | VIP không xuất hiện sau khi cài Keepalived | `ip_nonlocal_bind = 0` — Keepalived không bind được VIP | `echo "net.ipv4.ip_nonlocal_bind=1" >> /etc/sysctl.conf && sysctl -p` |
+| 5 | Prometheus scrape HAProxy bị `503` | HAProxy không có `/metrics` endpoint theo mặc định | Thêm `http-request use-service prometheus-exporter if { path /metrics }` vào `listen stats` |
+| 6 | `NodeDown` alert bắn cho `job="haproxy"` (không phải node thật) | Rule `up == 0` bắt tất cả jobs | Sửa thành `up{job="node_exporter"} == 0` |
+| 7 | Không nhận email RESOLVED | `resolve_timeout: 5m` quá dài, thiếu `instance` trong `group_by` | Đặt `resolve_timeout: 1m`, thêm `instance` vào `group_by` |
+| 8 | `DiskFull` không fire dù disk đầy | `fstype!="tmpfs"` bỏ sót `overlay`, `squashfs`, `devtmpfs` | Dùng regex: `fstype!~"tmpfs\|overlay\|squashfs\|devtmpfs"` |
+ 
+---
+ 
+## 12. Kết luận và bài học rút ra
+ 
+### 12.1 Kết quả đạt được
+ 
+| Tiêu chí | Kết quả |
+|---|---|
+| Thời gian failover Keepalived | < 3 giây |
+| Uptime website khi 1 backend down | 100% (HAProxy tự route) |
+| Cảnh báo sự cố đến Gmail | < 90 giây sau khi phát sinh |
+| Dashboard Grafana hoạt động | ✅ 4 dashboard (node/HAProxy/Redis/MySQL) |
+| Load balancing roundrobin | ✅ Phân phối đều 50/50 |
+ 
+### 12.2 Bài học rút ra
+ 
+**Về kỹ thuật:**
+ 
+- `ip_nonlocal_bind = 1` là điều kiện tiên quyết để Keepalived bind VIP — không có dòng này, Keepalived chạy nhưng VIP không xuất hiện
+- HAProxy cần file `.pem` = cert + key gộp lại theo đúng thứ tự (cert trước, key sau)
+- WordPress sau reverse proxy HTTPS bắt buộc phải xử lý header `X-Forwarded-Proto`, thiếu sẽ gây redirect loop
+- `fstype!~"regex"` quan trọng hơn `fstype!="string"` khi viết PromQL cho DiskFull
+**Về quy trình:**
+ 
+- Nên setup và test từng lớp độc lập trước khi ghép: LB layer → Web layer → DB layer → Monitoring layer
+- Document lại từng lỗi gặp phải ngay khi sửa xong — 1 tuần sau sẽ không còn nhớ
+- Chủ động test fail case (tắt từng service) thay vì chỉ test khi mọi thứ đang chạy
+**Định hướng mở rộng:**
+ 
+- **Scale backend:** Thêm web-03 chỉ cần 1 dòng trong `haproxy.cfg`, HAProxy reload không cần restart
+- **Database HA:** MariaDB Galera Cluster (3 node đồng bộ realtime) để loại bỏ điểm chết duy nhất tại DB
+- **Redis HA:** Redis Sentinel hoặc Redis Cluster cho session store
+---
+ 
+*Báo cáo hoàn thành ngày 20/05/2026 · Nguyễn Thanh Hiếu
