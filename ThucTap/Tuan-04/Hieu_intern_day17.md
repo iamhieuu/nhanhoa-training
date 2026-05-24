@@ -530,284 +530,207 @@ sudo rm /var/www/html/info.php   # xóa sau khi test
 
 ## 9. Monitoring: Prometheus + Grafana + Alertmanager
  
-### 9.1 Cài đặt Prometheus — edge-01 và edge-02
-**Cài prometheus**
-Prometheus Server sẽ chạy ngầm, đóng vai trò lưu trữ dữ liệu chuỗi thời gian và liên tục tính toán các biểu thức biểu đồ (PromQL). Nếu một biểu thức vượt ngưỡng an toàn (ví dụ CPU > 85%), nó sẽ tự động kích hoạt trạng thái báo động và bắn dữ liệu sang Alertmanager
-```
-sudo useradd --no-create-home --shell /bin/false prometheus 2>/dev/null
-sudo mkdir -p /etc/prometheus /var/lib/prometheus
-sudo chown prometheus:prometheus /etc/prometheus /var/lib/prometheus
-
+### 9.1 Cài đặt node\_exporter — tất cả 4 node
+ 
+```bash
+NODE_VER="1.7.0"
 cd /tmp
-sudo wget https://github.com/prometheus/prometheus/releases/download/v3.11.2/prometheus-3.11.2.linux-amd64.tar.gz
-sudo tar xf prometheus-3.11.2.linux-amd64.tar.gz
-cd prometheus-3.11.2.linux-amd64
-
-sudo cp prometheus promtool /usr/local/bin/
-sudo mkdir -p /etc/prometheus
-sudo mkdir -p /var/lib/prometheus
-sudo chown prometheus:prometheus /usr/local/bin/prometheus /usr/local/bin/promtool
-sudo chown -R prometheus:prometheus /etc/prometheus
-```
-Tạo service:
-sudo nano /etc/systemd/system/prometheus.service
-```
+sudo wget -q https://github.com/prometheus/node_exporter/releases/download/v${NODE_VER}/node_exporter-${NODE_VER}.linux-amd64.tar.gz
+sudo tar xzf node_exporter-${NODE_VER}.linux-amd64.tar.gz
+sudo cp node_exporter-${NODE_VER}.linux-amd64/node_exporter /usr/local/bin/
+sudo useradd -rs /bin/false node_exporter 2>/dev/null || true
+ 
+sudo tee /etc/systemd/system/node_exporter.service << 'EOF'
 [Unit]
-Description=Prometheus Monitoring
-Wants=network-online.target
-After=network-online.target
-
+Description=Prometheus Node Exporter
+After=network.target
+ 
 [Service]
-User=prometheus
-Group=prometheus
-Type=simple
-
-ExecStart=/usr/local/bin/prometheus \
-  --config.file=/etc/prometheus/prometheus.yml \
-  --storage.tsdb.path=/var/lib/prometheus \
-  --storage.tsdb.retention.time=15d \
-  --web.listen-address=0.0.0.0:9090 \
-  --web.enable-lifecycle
-
-Restart=on-failure
-RestartSec=5
-
+User=node_exporter
+ExecStart=/usr/local/bin/node_exporter --web.listen-address=:9100
+Restart=always
+ 
 [Install]
 WantedBy=multi-user.target
+EOF
+ 
+sudo systemctl daemon-reload
+sudo systemctl enable --now node_exporter
 ```
-<img width="340" height="293" alt="{FC67F455-85B5-4697-A283-72CA4AB29101}" src="https://github.com/user-attachments/assets/9f203b75-0776-44f7-a31a-a050a3c2a63b" />
-
-Tạo config Prometheus:
-Cấu hình này giúp Prometheus biết phải đi đâu để kéo các chỉ số từ lớp Edge và lớp Backend về
-sudo nano /etc/prometheus/prometheus.yml
-
+ 
+### 9.2 Cài đặt redis\_exporter và mysqld\_exporter — web-02
+ 
+```bash
+# redis_exporter
+cd /tmp
+sudo wget -q https://github.com/oliver006/redis_exporter/releases/download/v1.58.0/redis_exporter-v1.58.0.linux-amd64.tar.gz
+sudo tar xzf redis_exporter-v1.58.0.linux-amd64.tar.gz
+sudo cp redis_exporter-v1.58.0.linux-amd64/redis_exporter /usr/local/bin/
+ 
+sudo tee /etc/systemd/system/redis_exporter.service << 'EOF'
+[Unit]
+Description=Redis Exporter
+After=network.target
+ 
+[Service]
+ExecStart=/usr/local/bin/redis_exporter \
+  --redis.addr=redis://127.0.0.1:6379 \
+  --redis.password=redis_2026 \
+  --web.listen-address=:9121
+Restart=always
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+ 
+# mysqld_exporter
+sudo mysql -u root -p -e "
+CREATE USER IF NOT EXISTS 'exporter'@'localhost' IDENTIFIED BY 'exp_pass2026';
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';
+FLUSH PRIVILEGES;"
+ 
+sudo bash -c 'printf "[client]\nuser=exporter\npassword=exp_pass2026\n" > /etc/.mysqld_exporter.cnf'
+sudo chmod 600 /etc/.mysqld_exporter.cnf
+ 
+cd /tmp
+sudo wget -q https://github.com/prometheus/mysqld_exporter/releases/download/v0.15.1/mysqld_exporter-0.15.1.linux-amd64.tar.gz
+sudo tar xzf mysqld_exporter-0.15.1.linux-amd64.tar.gz
+sudo cp mysqld_exporter-0.15.1.linux-amd64/mysqld_exporter /usr/local/bin/
+ 
+sudo tee /etc/systemd/system/mysqld_exporter.service << 'EOF'
+[Unit]
+Description=MySQL Exporter
+After=network.target
+ 
+[Service]
+ExecStart=/usr/local/bin/mysqld_exporter \
+  --config.my-cnf=/etc/.mysqld_exporter.cnf \
+  --web.listen-address=:9104
+Restart=always
+ 
+[Install]
+WantedBy=multi-user.target
+EOF
+ 
+sudo systemctl daemon-reload
+sudo systemctl enable --now redis_exporter mysqld_exporter
 ```
+ 
+### 9.3 Cài đặt Prometheus — edge-01 và edge-02
+ 
+```bash
+PROM_VER="2.48.1"
+cd /tmp
+sudo wget -q https://github.com/prometheus/prometheus/releases/download/v${PROM_VER}/prometheus-${PROM_VER}.linux-amd64.tar.gz
+sudo tar xzf prometheus-${PROM_VER}.linux-amd64.tar.gz
+sudo cp prometheus-${PROM_VER}.linux-amd64/{prometheus,promtool} /usr/local/bin/
+sudo mkdir -p /etc/prometheus /var/lib/prometheus
+sudo useradd -rs /bin/false prometheus 2>/dev/null || true
+sudo chown -R prometheus:prometheus /etc/prometheus /var/lib/prometheus
+```
+ 
+**Cấu hình `/etc/prometheus/prometheus.yml`:**
+ 
+```yaml
 global:
-  scrape_interval: 15s
+  scrape_interval:     15s
   evaluation_interval: 15s
-
+ 
 alerting:
   alertmanagers:
     - static_configs:
-        - targets:
-            - 'localhost:9093'
-
+        - targets: ['localhost:9093']
+ 
 rule_files:
-  - /etc/prometheus/alert_rules.yml
-
+  - "/etc/prometheus/alert_rules.yml"
+ 
 scrape_configs:
-
   - job_name: 'node_exporter'
     static_configs:
       - targets:
-          - '192.168.136.131:9100'
-          - '192.168.136.146:9100'
-          - '192.168.136.145:9100'
-          - '192.168.136.134:9100'
-
+          - '192.168.136.131:9100'   # edge-01
+          - '192.168.136.140:9100'   # edge-02
+          - '192.168.136.145:9100'   # web-01
+          - '192.168.136.134:9100'   # web-02
+ 
   - job_name: 'haproxy'
     metrics_path: /metrics
     static_configs:
       - targets:
           - '192.168.136.131:8404'
           - '192.168.136.140:8404'
-
+ 
   - job_name: 'redis'
     static_configs:
-      - targets:
-          - '192.168.136.134:9121'
-
+      - targets: ['192.168.136.134:9121']
+ 
   - job_name: 'mariadb'
     static_configs:
-      - targets:
-          - '192.168.136.134:9104'
+      - targets: ['192.168.136.134:9104']
 ```
-Check config:
-````
-promtool check config /etc/prometheus/prometheus.yml
-````
-start service:
-````
-sudo systemctl daemon-reload
-sudo systemctl enable --now prometheus
-sudo systemctl status prometheus
-````
-Test: 
-```
-curl http://localhost:9090/-/ready
-```
-<img width="318" height="41" alt="{EAB3BFA8-FCA5-4110-A6D7-C2280BFC7564}" src="https://github.com/user-attachments/assets/0572f161-6ccd-443f-9bbf-dc3147a89700" />
-<img width="959" height="471" alt="{DBB6A716-B07E-4533-AD14-5CFB4A3C811C}" src="https://github.com/user-attachments/assets/91334f79-fb35-488a-b97d-a8472cc370d2" />
-
-**Cài Alermanager**
-
-Khi Prometheus phát hiện lỗi, nó sẽ đẩy hàng loạt cảnh báo thô sang đây. Alertmanager có nhiệm vụ làm bộ điều phối và lọc nhiễu cảnh báo
-
-```
-sudo useradd --no-create-home --shell /bin/false alertmanager 2>/dev/null
-sudo mkdir -p /etc/alertmanager /var/lib/alertmanager
-sudo chown alertmanager:alertmanager /etc/alertmanager /var/lib/alertmanager
-
-cd /tmp
-sudo wget https://github.com/prometheus/alertmanager/releases/download/v0.26.0/alertmanager-0.26.0.linux-amd64.tar.gz
-sudo tar xf alertmanager-0.26.0.linux-amd64.tar.gz
-cd alertmanager-0.26.0.linux-amd64
-sudo cp alertmanager amtool /usr/local/bin/
-sudo chown alertmanager:alertmanager /usr/local/bin/alertmanager /usr/local/bin/amtool
-```
-
-sudo nano /etc/systemd/system/alertmanager.service
-
-```
-[Unit]
-Description=Alertmanager
-After=network-online.target
-
-[Service]
-User=alertmanager
-Group=alertmanager
-ExecStart=/usr/local/bin/alertmanager \
-  --config.file=/etc/alertmanager/alertmanager.yml \
-  --storage.path=/var/lib/alertmanager \
-  --web.listen-address=0.0.0.0:9093
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-<img width="955" height="476" alt="{EF3B76E0-6831-4BF4-A3B1-AD67E014DAA9}" src="https://github.com/user-attachments/assets/f5b91824-0409-429b-a41a-b40a5f631ba6" />
-
-**Cài Alert_rules**
-
-sudo nano /etc/prometheus/alert_rules.yml  
-
-```
+ 
+### 9.4 Alert Rules — `/etc/prometheus/alert_rules.yml`
+ 
+```yaml
 groups:
   - name: node_alerts
     rules:
       - alert: NodeDown
-        expr: up == 0
+        expr: up{job="node_exporter"} == 0
         for: 30s
         labels:
           severity: critical
         annotations:
-          summary: '🔴 NODE DOWN: {{ $labels.instance }}'
-          description: 'Node {{ $labels.instance }} mất kết nối hơn 30 giây.'
-
+          summary: 'NODE DOWN: {{ $labels.instance }}'
+          description: 'Node {{ $labels.instance }} mat ket noi hon 30 giay.'
+ 
       - alert: HighCPU
         expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: '⚠️ CPU CAO: {{ $labels.instance }}'
-          description: 'CPU vượt 85% liên tục 5 phút. Hiện tại: {{ printf "%.1f" $value }}%'
-
+          summary: 'CPU CAO: {{ $labels.instance }}'
+          description: 'CPU vuot 85%. Hien tai: {{ $value | printf "%.1f" }}%'
+ 
       - alert: HighMemory
         expr: (1 - node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes) * 100 > 90
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: '⚠️ RAM THẤP: {{ $labels.instance }}'
-          description: 'RAM còn trống dưới 10%.'
-
+          summary: 'RAM THAP: {{ $labels.instance }}'
+          description: 'RAM con trong duoi 10%.'
+ 
       - alert: DiskFull
-        expr: (1 - node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 > 80
-        for: 5m
+        expr: |
+          (1 - node_filesystem_avail_bytes{
+            job="node_exporter",
+            fstype!~"tmpfs|overlay|squashfs|devtmpfs",
+            mountpoint!~"/boot/efi|/run/.*"
+          } / node_filesystem_size_bytes{
+            job="node_exporter",
+            fstype!~"tmpfs|overlay|squashfs|devtmpfs",
+            mountpoint!~"/boot/efi|/run/.*"
+          }) * 100 > 80
+        for: 2m
         labels:
           severity: warning
         annotations:
-          summary: '💾 DISK ĐẦY: {{ $labels.instance }}'
-          description: 'Disk đã dùng {{ printf "%.1f" $value }}%.'
-
+          summary: 'DISK DAY: {{ $labels.instance }}'
+          description: 'Disk {{ $labels.mountpoint }} su dung {{ $value | printf "%.1f" }}%.'
+ 
   - name: haproxy_alerts
     rules:
       - alert: HAProxyBackendDown
-        expr: haproxy_backend_up == 0
+        expr: haproxy_backend_up{job="haproxy"} == 0
         for: 10s
         labels:
           severity: critical
         annotations:
-          summary: '🔴 HAPROXY BACKEND DOWN: {{ $labels.backend }}'
-          description: 'Backend {{ $labels.backend }} trên HAProxy bị DOWN.'
-```
-Check và reload cấu hình 
-```
-sudo promtool check rules /etc/prometheus/alert_rules.yml
-sudo promtool check config /etc/prometheus/prometheus.yml
-curl -X POST http://localhost:9090/-/reload
-```
-<img width="959" height="478" alt="{FCC628AA-8D1E-42A9-B690-E296670EA79C}" src="https://github.com/user-attachments/assets/e8fb2684-de89-4fbd-b23c-3f37068fa6a7" />
-
-**Cài đặt báo về gmail**
-
-Thiết lập cấu hình tích hợp hệ thống thư điện tử SMTP của Google. Khi Alertmanager nhận được cảnh báo thuộc nhóm critical, nó sẽ ngay lập tức đăng nhập vào hệ thống mail và bắn thông báo khẩn cấp cho người quản trị
-sudo nano /etc/alertmanager/alertmanager.yml
-
-```
-global:
-  smtp_smarthost:     'smtp.gmail.com:587'
-  smtp_from:          'monitoring-system@gmail.com'
-  smtp_auth_username: 'tai-khoan-cua-ban@gmail.com'
-  smtp_auth_password: 'zmvigdkenyuuuyon'
-  smtp_require_tls:   true
-  smtp_hello:         'localhost'
-  resolve_timeout:    5m
-
-route:
-  group_by:        ['alertname', 'severity']
-  group_wait:      10s
-  group_interval:  5m
-  repeat_interval: 2h
-  receiver: 'gmail'
-  routes:
-    - match:
-        severity: critical
-      receiver: 'gmail_critical'
-      group_wait: 5s
-      repeat_interval: 30m
-
-receivers:
-  - name: 'gmail'
-    email_configs:
-      - to:            'admin-quan-tri@gmail.com'
-        send_resolved: true
-        send_resolved: true
-        headers:
-          Subject: >-
-            {{ if eq .Status "firing" }}⚠️ FIRING{{ else }}✅ RESOLVED{{ end }}
-            [{{ .GroupLabels.alertname }}] {{ .CommonLabels.instance }}
-        html: |
-          <h3>{{ if eq .Status "firing" }}🔴 CẢNH BÁO{{ else }}✅ ĐÃ GIẢI QUYẾT{{ end }}</h3>
-          {{ range .Alerts }}
-          <b>Alert:</b> {{ .Annotations.summary }}<br>
-          <b>Chi tiết:</b> {{ .Annotations.description }}<br>
-          <b>Node:</b> {{ .Labels.instance }}<br>
-          <b>Mức độ:</b> {{ .Labels.severity }}<br>
-          <b>Thời gian:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }}<br><hr>
-          {{ end }}
-          <a href="http://192.168.136.131:3000">📊 Grafana Dashboard</a> &nbsp;|&nbsp;
-          <a href="http://192.168.136.131:9090/alerts">📡 Prometheus Alerts</a>
-
-  - name: 'gmail_critical'
-    email_configs:
-      - to:            'admin-quan-tri@gmail.com'
-        send_resolved: true
-        headers:
-          Subject: >-
-            🚨 CRITICAL [{{ .GroupLabels.alertname }}] {{ .CommonLabels.instance }}
-        html: |
-          <h2 style="color:red">🚨 SỰ CỐ NGHIÊM TRỌNG</h2>
-          {{ range .Alerts }}
-          <p><b>{{ .Annotations.summary }}</b><br>
-          {{ .Annotations.description }}<br>
-          Node: <code>{{ .Labels.instance }}</code><br>
-          Lúc: {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
-          {{ end }}
-          <a href="http://192.168.136.131:3000">Grafana</a> |
-          <a href="http://192.168.136.131:9090/alerts">Prometheus</a>
-
+          summary: 'HAPROXY BACKEND DOWN: {{ $labels.backend }}'
+          description: 'Backend {{ $labels.backend }} bi DOWN tren HAProxy.'
+ 
 inhibit_rules:
   - source_match:
       alertname: NodeDown
@@ -815,129 +738,37 @@ inhibit_rules:
       alertname: 'HighCPU|HighMemory|DiskFull'
     equal: ['instance']
 ```
-**Cài Grafana**
-
-```
-cd /tmp
-sudo wget https://dl.grafana.com/oss/release/grafana_13.0.1_amd64.deb
-sudo dpkg -i grafana_13.0.1_amd64.deb
-sudo apt-get install -f -y
+ 
+### 9.5 Cài đặt Grafana — edge-01 và edge-02
+ 
+```bash
+wget -q -O - https://packages.grafana.com/gpg.key \
+  | gpg --dearmor | sudo tee /usr/share/keyrings/grafana.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://packages.grafana.com/oss/deb stable main" \
+  | sudo tee /etc/apt/sources.list.d/grafana.list
+sudo apt update && sudo apt install -y grafana
 sudo systemctl enable --now grafana-server
-# Grafana: http://192.168.136.131:3000  (admin / admin)
 ```
+ 
+**Dashboard Import:**
+ 
+| Dashboard ID | Tên | Nội dung |
+|---|---|---|
+| `1860` | Node Exporter Full | CPU · RAM · Disk · Network |
+| `367` | HAProxy 2 Full | Request rate · Backend status |
+| `763` | Redis Dashboard | Memory · Hit rate · Commands/s |
+| `7362` | MySQL Overview | Queries · Connections · InnoDB |
+ 
+---
+<img width="759" height="466" alt="{3E93B90E-BE93-41F1-86FB-D1438BF2E71B}" src="https://github.com/user-attachments/assets/4655e8f9-992e-468a-957a-1e19cdcc5fc6" />
+<img width="561" height="475" alt="{B260BB1D-FC3A-4987-B76D-710E515BB347}" src="https://github.com/user-attachments/assets/19c8b498-5eea-40e3-8788-6c942bc6f7eb" />
 
-* Thêm Datasource
-  * Connections → Data Sources → Add → Prometheus
-* Prometheus URL
- * http://localhost:9090 → Save & Test 
-* Import dashboard
- * Dashboards → Import → nhập ID → Load → Import
-
-**ID Cộng Đồng**
-
- * 12693: HAProxy
- * 1860: Node Exporter full
- * 14057: Mysql exporter
- * 11692: Redis exporter
-
+ <img width="832" height="484" alt="{2D10D2EC-B156-4DF7-8106-126F3D603990}" src="https://github.com/user-attachments/assets/0ec171a1-68d5-4f9a-924f-7b4a585ab6f5" />
 
 <img width="960" height="469" alt="{5EAF2C90-981C-4713-A720-F9A998FCA463}" src="https://github.com/user-attachments/assets/247b8fdf-1807-4b8a-be63-5f9860475e98" />
 
-**node_exporter (tất cả 4 node)**
-
-Nhằm mục đích nắm bắt được tình trạng sức khỏe phần cứng (Tỷ lệ tải CPU, dung lượng RAM còn trống, tốc độ đọc ghi ổ đĩa, băng thông card mạng ens33) của chính các máy chủ Edge để đẩy về Grafana vẽ biểu đồ.  
-```
-sudo useradd --no-create-home --shell /bin/false node_exporter 2>/dev/null
-cd /tmp
-sudo wget https://github.com/prometheus/node_exporter/releases/download/v1.11.1/node_exporter-1.11.1.linux-amd64.tar.gz
-sudo tar xf node_exporter-1.11.1.linux-amd64.tar.gz
-sudo cp node_exporter-1.11.1.linux-amd64/node_exporter /usr/local/bin/
-sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter
-```
-sudo nano /etc/systemd/system/node_exporter.service 
-```
-[Unit]
-Description=Node Exporter
-After=network.target
-[Service]
-User=node_exporter
-ExecStart=/usr/local/bin/node_exporter --web.listen-address=:9100
-Restart=always
-[Install]
-WantedBy=multi-user.target
-```
-Reload và check
-```
-sudo systemctl daemon-reload && sudo systemctl enable --now node_exporter
-curl -s http://192.168.136.145:9100/metrics | head
-```
- <img width="832" height="484" alt="{2D10D2EC-B156-4DF7-8106-126F3D603990}" src="https://github.com/user-attachments/assets/0ec171a1-68d5-4f9a-924f-7b4a585ab6f5" />
-
-**redis_exporter + mysqld_exporter (web-02)**
-
- * redis_exporter
-
-Do hệ thống HA Web chạy WordPress cần dùng Redis làm Object Cache để giảm tải cho Database. Chúng ta cài đặt công cụ này để thu thập tỷ lệ trúng cache (keyspace_hits vs keyspace_misses), lượng RAM tiêu thụ của Redis xem có bị phình to quá mức gây crash hệ thống không.  
-````
-cd /tmp
-sudo wget https://github.com/oliver006/redis_exporter/releases/download/v1.83.0/redis_exporter-v1.83.0.linux-amd64.tar.gz
-sudo tar xf redis_exporter-v1.83.0.linux-amd64.tar.gz
-sudo cp redis_exporter-v1.83.0.linux-amd64/redis_exporter /usr/local/bin/
-````
-sudo nano /etc/systemd/system/redis_exporter.service
-````
-[Unit]
-Description=Redis Exporter
-After=network.target
-[Service]
-ExecStart=/usr/local/bin/redis_exporter --redis.addr=redis://127.0.0.1:6379 --redis.password=redis_2026 --web.listen-address=:9121
-Restart=always
-[Install]
-WantedBy=multi-user.target
-````
-Check
-```
-curl -s http://localhost:9121/metrics | grep redis_up
-```
-<img width="561" height="475" alt="{B260BB1D-FC3A-4987-B76D-710E515BB347}" src="https://github.com/user-attachments/assets/19c8b498-5eea-40e3-8788-6c942bc6f7eb" />
-
-**mysqld_exporter**
-
-* Cài đặt mysql_exporter
-````
-sudo wget https://github.com/prometheus/mysqld_exporter/releases/download/v0.19.0/mysqld_exporter-0.19.0.linux-amd64.tar.gz
-sudo tar xf mysqld_exporter-0.19.0.linux-amd64.tar.gz
-sudo cp mysqld_exporter-0.19.0.linux-amd64/mysqld_exporter /usr/local/bin/
-````
-````
-sudo mysql -u root -p -e "
-CREATE USER IF NOT EXISTS 'exporter'@'localhost' IDENTIFIED BY 'exp_pass';
-GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';
-FLUSH PRIVILEGES;"
-
-sudo bash -c 'printf "[client]
-user=exporter
-password=exp_pass
-" > /etc/.mysqld_exporter.cnf'
-sudo chmod 600 /etc/.mysqld_exporter.cnf
-````
-
-sudo nano /etc/systemd/system/mysqld_exporter.service
-
-````
-[Unit]
-Description=MySQL Exporter
-After=network.target
-[Service]
-ExecStart=/usr/local/bin/mysqld_exporter --config.my-cnf=/etc/.mysqld_exporter.cnf --web.listen-address=:9104
-Restart=always
-[Install]
-WantedBy=multi-user.target
-````
-sudo systemctl daemon-reload  
-sudo systemctl enable --now redis_exporter mysqld_exporter       
-Check
-```
-curl -s http://localhost:9104/metrics | grep mysql_up
-```
-<img width="759" height="466" alt="{3E93B90E-BE93-41F1-86FB-D1438BF2E71B}" src="https://github.com/user-attachments/assets/4655e8f9-992e-468a-957a-1e19cdcc5fc6" />
+<img width="959" height="478" alt="{FCC628AA-8D1E-42A9-B690-E296670EA79C}" src="https://github.com/user-attachments/assets/e8fb2684-de89-4fbd-b23c-3f37068fa6a7" />
+<img width="955" height="476" alt="{EF3B76E0-6831-4BF4-A3B1-AD67E014DAA9}" src="https://github.com/user-attachments/assets/f5b91824-0409-429b-a41a-b40a5f631ba6" />
+<img width="318" height="41" alt="{EAB3BFA8-FCA5-4110-A6D7-C2280BFC7564}" src="https://github.com/user-attachments/assets/0572f161-6ccd-443f-9bbf-dc3147a89700" />
+<img width="959" height="471" alt="{DBB6A716-B07E-4533-AD14-5CFB4A3C811C}" src="https://github.com/user-attachments/assets/91334f79-fb35-488a-b97d-a8472cc370d2" />
+<img width="340" height="293" alt="{FC67F455-85B5-4697-A283-72CA4AB29101}" src="https://github.com/user-attachments/assets/9f203b75-0776-44f7-a31a-a050a3c2a63b" />
