@@ -46,7 +46,7 @@ Node	| IP	| Role	| Dịch vụ chính
 -- | -- | -- | --
 VIP |	192.168.136.100 |	Virtual IP |	VRRP :80 :443 :8404
 edge-01 |	192.168.136.131 |	MASTER LB |	HAProxy · Keepalived · Prometheus · Grafana · Alertmanager · node\_exporter
-edge-02 |	192.168.136.140	 | BACKUP LB |	HAProxy · Keepalived · Prometheus · Grafana · Alertmanager · node\_exporter
+edge-02 |	192.168.136.146	 | BACKUP LB |	HAProxy · Keepalived · Prometheus · Grafana · Alertmanager · node\_exporter
 web-01 |	192.168.136.145 |	Backend 1 |	Apache2 · PHP-FPM · WordPress · node_exporter
 web-02  |	192.168.136.134	| Backend 2 + DB |	Apache2 · MariaDB · Redis · node_exporter · redis_exp · mysqld_exp 
 
@@ -101,7 +101,7 @@ sudo nano /etc/hosts
 127.0.0.1       localhost
 192.168.136.100      vip
 192.168.136.131   edge-01
-192.168.136.140   edge-02
+192.168.136.146   edge-02
 192.168.136.145    web-01
 192.168.136.134    web-02
 ```
@@ -225,6 +225,7 @@ state     BACKUP
 priority  100     
 ```
 <img width="392" height="332" alt="{5F0C0E84-5F20-4A78-88FE-D0CFA8DCE462}" src="https://github.com/user-attachments/assets/2dfc8ab0-9c74-4b71-ac51-f51c9e6bfb3a" />
+
 ### 4.5 Notify script — edge-01 và edge-02
 Tạo file thông báo cho log dễ đọc
 sudo nano /etc/keepalived/notify.sh
@@ -267,6 +268,7 @@ Máy edge-02 Backup chưa có VIP
 1. **SSL Termination:** Nhận HTTPS từ client, giải mã TLS, forward HTTP thuần đến backend
 2. **Load Balancing (Round Robin):** Phân phối request đến web-01 và web-02 luân phiên
 3. **Health Check:** Cứ 2 giây kiểm tra `/health.html` của từng backend. 3 lần fail liên tiếp (6 giây) → tự loại node ra khỏi pool
+
 ### 5.2 Cài đặt và cấu hình — edge-01 và edge-02
 
 sudo apt install -y haproxy  
@@ -615,7 +617,10 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now redis_exporter mysqld_exporter
 ```
- 
+ <img width="591" height="469" alt="{755DA620-B696-46DF-A1F0-3B692D036CA4}" src="https://github.com/user-attachments/assets/ac92a224-6ee6-4bf6-a770-f4d89959c2b9" />
+
+<img width="855" height="467" alt="{9BCD94F0-D720-4F4A-9472-4D5FB08B5BF7}" src="https://github.com/user-attachments/assets/934b086a-2cd3-42a4-a7ab-9ae763aff305" />
+
 ### 9.3 Cài đặt Prometheus — edge-01 và edge-02
  
 ```bash
@@ -649,7 +654,7 @@ scrape_configs:
     static_configs:
       - targets:
           - '192.168.136.131:9100'   # edge-01
-          - '192.168.136.140:9100'   # edge-02
+          - '192.168.136.146:9100'   # edge-02
           - '192.168.136.145:9100'   # web-01
           - '192.168.136.134:9100'   # web-02
  
@@ -658,7 +663,7 @@ scrape_configs:
     static_configs:
       - targets:
           - '192.168.136.131:8404'
-          - '192.168.136.140:8404'
+          - '192.168.136.146:8404'
  
   - job_name: 'redis'
     static_configs:
@@ -668,7 +673,8 @@ scrape_configs:
     static_configs:
       - targets: ['192.168.136.134:9104']
 ```
- 
+ <img width="948" height="474" alt="{40A04B32-9729-469C-88EB-7B78F03B7AAF}" src="https://github.com/user-attachments/assets/58ef5e0a-920d-4f90-a3a9-8d46de25a1d9" />
+
 ### 9.4 Alert Rules — `/etc/prometheus/alert_rules.yml`
  
 ```yaml
@@ -738,7 +744,9 @@ inhibit_rules:
       alertname: 'HighCPU|HighMemory|DiskFull'
     equal: ['instance']
 ```
- 
+ <img width="959" height="429" alt="{8C1AF128-7C6B-4D98-82B7-C6296C50CFE5}" src="https://github.com/user-attachments/assets/6370c1c9-42fd-4d8a-881e-2f70e3e39df5" />
+<img width="940" height="438" alt="{E9389CAA-93AC-44C4-8497-785D87A31204}" src="https://github.com/user-attachments/assets/d0db0f97-2532-4fd2-949b-0a6d66c2c5b9" />
+
 ### 9.5 Cài đặt Grafana — edge-01 và edge-02
  
 ```bash
@@ -758,7 +766,9 @@ sudo systemctl enable --now grafana-server
 | `367` | HAProxy 2 Full | Request rate · Backend status |
 | `763` | Redis Dashboard | Memory · Hit rate · Commands/s |
 | `7362` | MySQL Overview | Queries · Connections · InnoDB |
- 
+
+<img width="960" height="436" alt="image" src="https://github.com/user-attachments/assets/c9f5f6f6-9d31-4e6e-b79d-d74209529f84" />
+
 ---
  
 ## 10. Kết quả kiểm tra
