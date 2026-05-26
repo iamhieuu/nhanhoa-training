@@ -334,6 +334,7 @@ SHOW STATUS LIKE 'Threads_connected';
 ---
 ## Bảo mật MySQL/MariaDB
 ### 1. Kiểm tra và dọn user nguy hiểm
+```
 -- Xem tất cả user và host
 SELECT user, host, plugin, password_expired 
 FROM mysql.user ORDER BY user;
@@ -343,8 +344,10 @@ DELETE FROM mysql.user WHERE user = '';
 DROP USER ''@'localhost';
 DROP USER ''@'%';
 FLUSH PRIVILEGES;
+```
 
 ### 2. Password policy — bắt buộc password mạnh
+```
 -- Bật plugin validate_password
 INSTALL PLUGIN validate_password
 SONAME 'validate_password.so';
@@ -352,8 +355,9 @@ SONAME 'validate_password.so';
 SET GLOBAL validate_password_policy = 'MEDIUM';
 SET GLOBAL validate_password_length = 12; 
 -- Thêm vào my.cnf để persistent sau restart: -- [mysqld] -- validate_password_policy = MEDIUM -- validate_password_length = 12
-
+```
 ### 3. Ngăn remote root login & bind address
+````
 -- Đảm bảo root chỉ login từ localhost
 UPDATE mysql.user
 SET host = 'localhost'
@@ -361,4 +365,4 @@ WHERE user = 'root'
 AND host != 'localhost';
 FLUSH PRIVILEGES;
 --/etc/mysql/mariadb.conf.d/50-server.cnf — chỉ lắng nghe localhost (không nhận kết nối từ ngoài) -- bind-address = 127.0.0.1 -- Nếu cần remote app kết nối: bind-address = 0.0.0.0 -- nhưng phải kết hợp firewall ufw  
-
+````
