@@ -335,7 +335,7 @@ echo "show stat" | sudo socat stdio /run/haproxy/admin.sock \
 # web_servers,web02,UP
 ```
  
-> **Truy cập Stats:** `http://192.168.136.131:8404/haproxy-stats` — user `admin` / `Admin@2026!`
+> **Truy cập Stats:** `http://192.168.136.131:8404/stats` — user `admin` / `admin123`
  
 <img width="417" height="369" alt="{5A42F5D0-D87C-498B-BE3C-4D92C9438894}" src="https://github.com/user-attachments/assets/36129ce3-34eb-4fad-aea2-05e3fd060aba" />
 
