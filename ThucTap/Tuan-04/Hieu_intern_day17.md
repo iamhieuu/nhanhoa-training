@@ -498,17 +498,70 @@ sudo chown www-data:www-data /var/www/html/health.html
 sudo cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php  
 sudo nano /var/www/html/wp-config.php  
 
-define( 'DB_NAME',     'wordpress_db' );
-define( 'DB_USER',     'wp_user' );
-define( 'DB_PASSWORD', 'StrongPass@2024' );
-define( 'DB_HOST',     '192.168.136.134' );   // MariaDB trên web-02
-define( 'DB_CHARSET',  'utf8mb4' );
+<?php
 
-// Thêm vào sau dòng DB_HOST để dùng Redis session
-define( 'WP_REDIS_HOST',     '192.168.136.134' );
-define( 'WP_REDIS_PORT',     6379 );
-define( 'WP_REDIS_PASSWORD', 'redis_secret_2024' );
-define( 'WP_CACHE',          true );
+if ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) &&
+     $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ) {
+    $_SERVER['HTTPS'] = 'on';
+}
+// Lấy IP thật của client (qua HAProxy)
+if ( isset($_SERVER['HTTP_X_REAL_IP']) ) {
+    $_SERVER['REMOTE_ADDR'] = $_SERVER['HTTP_X_REAL_IP'];
+}
+
+// ================================================================
+// DATABASE — MariaDB trên web-02 (192.168.136.134)
+// ================================================================
+define( 'DB_NAME',     'wordpress_db' );
+define( 'DB_USER',     'iamhieu' );           // ← user đã tạo trong MariaDB
+define( 'DB_PASSWORD', 'Iamhieu@2026' );      // ← password đã đặt
+define( 'DB_HOST',     '192.168.136.134' );   // ← MariaDB trên web-02
+define( 'DB_CHARSET',  'utf8mb4' );
+define( 'DB_COLLATE',  'utf8mb4_unicode_ci' );
+
+
+define('FORCE_SSL_ADMIN', true);
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
+
+define( 'WP_HOME',    'https://192.168.136.100' );
+define( 'WP_SITEURL', 'https://192.168.136.100' );
+
+define( 'WP_REDIS_HOST',         '192.168.136.134' );
+define( 'WP_REDIS_PORT',         6379 );
+define( 'WP_REDIS_PASSWORD',     'redis_2026' );  
+define( 'WP_REDIS_TIMEOUT',      1 );
+define( 'WP_REDIS_READ_TIMEOUT', 1 );
+define( 'WP_CACHE',              true );
+
+define( 'DISABLE_WP_CRON', true );
+
+define( 'FS_METHOD', 'direct' );
+
+define( 'UPLOADS', 'wp-content/uploads' );
+
+// Lấy từ: https://api.wordpress.org/secret-key/1.1/salt/
+// DÁN OUTPUT CỦA curl https://api.wordpress.org/secret-key/1.1/salt/ VÀO ĐÂY
+define( 'AUTH_KEY',         'paste-your-unique-phrase-here' );
+define( 'SECURE_AUTH_KEY',  'paste-your-unique-phrase-here' );
+define( 'LOGGED_IN_KEY',    'paste-your-unique-phrase-here' );
+define( 'NONCE_KEY',        'paste-your-unique-phrase-here' );
+define( 'AUTH_SALT',        'paste-your-unique-phrase-here' );
+define( 'SECURE_AUTH_SALT', 'paste-your-unique-phrase-here' );
+define( 'LOGGED_IN_SALT',   'paste-your-unique-phrase-here' );
+define( 'NONCE_SALT',       'paste-your-unique-phrase-here' );
+
+$table_prefix = 'wp_';
+
+define( 'WP_DEBUG',         false );
+define( 'WP_DEBUG_LOG',     false );
+define( 'WP_DEBUG_DISPLAY', false );
+
+if ( ! defined( 'ABSPATH' ) ) {
+    define( 'ABSPATH', __DIR__ . '/' );
+}
+require_once ABSPATH . 'wp-settings.php';
 ```
 <img width="420" height="160" alt="{31C4A194-B011-4340-9D6E-90A72575FB80}" src="https://github.com/user-attachments/assets/fb9a3c23-32f7-42e5-954e-5c7c6389be72" />
 
