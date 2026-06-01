@@ -50,7 +50,7 @@ Xây dựng hệ thống web có tính sẵn sàng cao (High Availability) nhằ
 
 ### 1.2 Kiến Trúc Hệ Thống
 
-<img width="4180" height="3748" alt="image" src="https://github.com/user-attachments/assets/28cb5dae-edd0-43da-92d4-376179dfb561" />
+<img width="4176" height="3744" alt="image" src="https://github.com/user-attachments/assets/f86cf797-b9dc-41cc-8103-89d665863aab" />
 
 ### 1.3 Bảng Địa Chỉ IP và Dịch Vụ
 
