@@ -480,3 +480,162 @@ App Python ──► ODBC Standard ──► ODBC Driver MySQL
                              ──► ODBC Driver PostgreSQL
 → App không thay đổi, chỉ đổi driver!
 ```
+### ODBC (Open Database Connectivity)
+ 
+**Kiến trúc:**
+```
+Application (Python, Excel, PowerBI, R)
+        ↓ ODBC API calls (chuẩn)
+ODBC Driver Manager (unixODBC trên Linux)
+        ↓ Load đúng driver
+MySQL ODBC Driver / PostgreSQL Driver / ...
+        ↓ Wire Protocol
+Database Server
+```
+
+### JDBC (Java Database Connectivity)
+ 
+**Kiến trúc:**
+```
+Java Application (Spring Boot, Hibernate)
+        ↓ java.sql.* / javax.sql.*
+JDBC Driver (mysql-connector-j-9.x.jar)
+        ↓ MySQL Wire Protocol
+MySQL Server
+```
+
+### So sánh ODBC vs JDBC vs Native Driver
+ 
+| Tiêu chí | ODBC | JDBC | Native Driver |
+|---|---|---|---|
+| **Ngôn ngữ** | C/C++, Python, R, Excel | Java, Kotlin, Scala | Từng ngôn ngữ riêng |
+| **Cấu hình** | DSN trong OS (odbcad32) | Connection string trong code | Connection string |
+| **Hiệu suất** | Trung bình (có overhead) | Tốt | Tốt nhất |
+| **Đa DB** | ✅ Rất rộng | ✅ Rộng (JVM) | Chỉ 1 DB |
+| **Dùng khi** | BI tools, báo cáo, Excel | Java app | Cần max performance |
+
+ ```bash
+# Cài ODBC trên Ubuntu 22.04
+sudo apt install unixodbc unixodbc-dev -y
+odbcinst -d -q       # Xem drivers đã đăng ký
+isql -v MySQL_DSN    # Test kết nối DSN
+```
+ 
+---
+## 7. API và Web Services cho Database
+ 
+### REST API — Mapping với SQL
+ 
+| HTTP Method | URL | SQL tương đương |
+|---|---|---|
+| `GET /orders` | Lấy danh sách | `SELECT * FROM orders` |
+| `GET /orders/123` | Lấy 1 record | `SELECT * WHERE id=123` |
+| `POST /orders` | Tạo mới | `INSERT INTO orders` |
+| `PUT /orders/123` | Cập nhật toàn bộ | `UPDATE ... WHERE id=123` |
+| `PATCH /orders/123` | Cập nhật một phần | `UPDATE SET field=val WHERE id=123` |
+| `DELETE /orders/123` | Xóa | `DELETE WHERE id=123` |
+ 
+### GraphQL vs REST — Góc nhìn DB
+ 
+```
+Vấn đề của REST:
+GET /users/1       → {id, name, email, address, phone, ...}  (lấy thừa)
+GET /orders?user=1 → [...]                                    (request thứ 2)
+GET /products/...  → [...]                                    (request thứ 3)
+= 3 requests, nhiều data thừa
+ 
+GraphQL:
+POST /graphql
+query {
+  user(id: 1) {
+    name                    ← chỉ lấy đúng field cần
+    orders { id total }     ← join sẵn trong 1 request
+  }
+}
+= 1 request, đúng data cần
+```
+ 
+| Tiêu chí | REST | GraphQL | gRPC |
+|---|---|---|---|
+| **Overfetching** | Phổ biến |  Không |  Không |
+| **Số request** | Nhiều (N+1) |  1 request |  Streaming |
+| **Caching** |  HTTP cache dễ | Khó hơn | Phức tạp |
+| **Learning curve** | Thấp | Trung bình | Cao |
+| **Dùng khi** | Public API đơn giản | Internal API, mobile | Microservices nội bộ |
+ 
+### Database Gateway Pattern
+ 
+```
+App → API Gateway → Auth/Rate Limit → Database API → DB
+                                           ↑
+                              (Hasura, PostgREST, Supabase)
+                              Tự động generate API từ DB schema
+```
+ 
+---
+ 
+<a name="vii4"></a>
+## 8. ETL — Extract, Transform, Load
+ 
+### Khái niệm
+ 
+```
+ETL = Quy trình di chuyển và biến đổi dữ liệu giữa các hệ thống
+ 
+EXTRACT          TRANSFORM              LOAD
+Trích xuất  →   Làm sạch, chuẩn hóa  →  Nạp vào đích
+từ nguồn        Join, aggregate           (Data Warehouse,
+                Convert, deduplicate      Analytics DB)
+ 
+Ví dụ thực tế:
+MySQL OLTP ──┐
+CSV files   ─┼─► ETL Engine ──► BigQuery / Redshift (Data Warehouse)
+REST API    ─┘
+                 └► BI Tool (Grafana, Tableau, Metabase)
+```
+ 
+### ETL vs ELT — Xu hướng 2026
+ 
+| Tiêu chí | ETL (truyền thống) | ELT (hiện đại) |
+|---|---|---|
+| **Thứ tự** | Extract → Transform → Load | Extract → Load → Transform |
+| **Transform ở đâu** | Server ETL riêng | Trong Data Warehouse |
+| **Phù hợp** | Data Warehouse cũ, on-premise | Cloud DW  |
+| **Công cụ** | Informatica, SSIS, Pentaho | dbt, Airbyte + dbt |
+| **Xu hướng 2026** | Đang giảm |  Đang tăng |
+ 
+### CDC — Change Data Capture (Real-time ETL)
+ 
+```
+ETL batch truyền thống: Chạy mỗi đêm → Data lag 24 giờ
+ 
+CDC: Đọc binlog MySQL → Stream events real-time → lag vài giây
+ 
+MySQL binlog ──► Debezium ──► Kafka ──► Consumer
+                 (đọc như       (event   ├─► Elasticsearch
+                  replica)       bus)    ├─► Data Warehouse
+                                         └─► Cache invalidation
+```
+ 
+**Ví dụ Debezium config:**
+```json
+{
+  "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+  "database.hostname": "192.168.1.10",
+  "database.include.list": "ecommerce",
+  "table.include.list": "ecommerce.orders"
+}
+```
+ 
+### Công cụ ETL phổ biến 2026
+ 
+| Công cụ | Loại | Điểm mạnh | Dùng khi |
+|---|---|---|---|
+| **Apache Airflow** | Orchestrator | DAG-based, Python, schedule | Cần lên lịch và monitor ETL jobs |
+| **dbt** | Transform | SQL-based, version control, test | ELT trong Data Warehouse |
+| **Airbyte** | Extract + Load | 300+ connectors, open source | Cần connector nhanh, ít code |
+| **Debezium** | CDC | Real-time, đọc binlog | Sync real-time, event streaming |
+| **Apache Spark** | Batch + Stream | Xử lý TB data, ML integration | Big Data, phức tạp |
+| **Fivetran** | EL managed | Tự động, ít maintain | Team nhỏ, ưu tiên tốc độ setup |
+ 
+---
