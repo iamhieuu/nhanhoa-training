@@ -50,44 +50,7 @@ Xây dựng hệ thống web có tính sẵn sàng cao (High Availability) nhằ
 
 ### 1.2 Kiến Trúc Hệ Thống
 
-```
-                         ┌────────────────────────┐
-        Internet ─HTTPS──► VIP-HTTP: 192.168.136.100  │ (VRRP VI_1)
-                         │ VIP-MySQL: 192.168.136.101 │ (VRRP VI_2)
-                         └──────────┬─────────────────┘
-                                    │
-                    ┌───────────────┴────────────────┐
-                    │ VRRP heartbeat mỗi 1 giây       │
-             ┌──────▼──────┐                  ┌──────▼──────┐
-             │  edge-01    │                  │  edge-02    │
-             │  MASTER     │◄───────────────►│  BACKUP     │
-             │ .131        │                  │ .146        │
-             │ HAProxy     │                  │ HAProxy     │
-             │ Keepalived  │                  │ Keepalived  │
-             │ Prometheus  │                  │ Prometheus  │
-             │ Grafana     │                  │ Grafana     │
-             │ Alertmanager│                  │ Alertmanager│
-             │ garbd       │                  │             │
-             └──────┬──────┘                  └──────┬──────┘
-                    │      Round Robin + Health Check  │
-                    └──────────────┬───────────────────┘
-                                   │
-                    ┌──────────────┴─────────────────┐
-                    │                                 │
-             ┌──────▼──────┐                  ┌──────▼──────┐
-             │   web-01    │                  │   web-02    │
-             │ .145        │◄──Galera Sync───►│ .134        │
-             │ Apache2     │◄──Redis Repl.───►│ Apache2     │
-             │ PHP-FPM     │                  │ PHP-FPM     │
-             │ WordPress   │                  │ WordPress   │
-             │ MariaDB     │                  │ MariaDB     │
-             │ Redis Slave │                  │ Redis Master│
-             │ Redis Sent. │                  │ Redis Sent. │
-             │ node_exp    │                  │ node_exp    │
-             │ redis_exp   │                  │ redis_exp   │
-             │ mysqld_exp  │                  │ mysqld_exp  │
-             └─────────────┘                  └─────────────┘
-```
+<img width="4180" height="3748" alt="image" src="https://github.com/user-attachments/assets/28cb5dae-edd0-43da-92d4-376179dfb561" />
 
 ### 1.3 Bảng Địa Chỉ IP và Dịch Vụ
 
@@ -104,10 +67,10 @@ Xây dựng hệ thống web có tính sẵn sàng cao (High Availability) nhằ
 
 | Phần mềm | Phiên bản | Ghi chú |
 |---|---|---|
-| Ubuntu Server | 22.04.5 LTS | Jammy Jellyfish |
+| Ubuntu Server | 22.04.5 LTS |  |
 | MariaDB | 10.11.x | LTS, hỗ trợ đến 2028 |
 | Galera | 26.4.x | Đi kèm MariaDB 10.11 |
-| galera-arbitrator-4 | 26.4.x | Phải khớp version với DB node |
+| galera-arbitrator-4 | 26.4.x | khớp version với DB node |
 | Redis | 7.0.x | Ubuntu 22.04 default repo |
 | HAProxy | 2.4.x | Ubuntu 22.04 default repo |
 | Keepalived | 2.2.x | Ubuntu 22.04 default repo |
