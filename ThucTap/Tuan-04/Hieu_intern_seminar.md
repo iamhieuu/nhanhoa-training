@@ -1,13 +1,14 @@
 # Báo Cáo Học Tập — Hệ Thống High Availability Web
 
-*Keepalived · HAProxy · Apache · WordPress · MariaDB Galera · Redis Sentinel · Prometheus · Grafana · Alertmanager*
+> *Keepalived · HAProxy · Apache · WordPress · MariaDB Galera · Redis Sentinel · Prometheus · Grafana · Alertmanager*
 
 ---
 
+## Thông Tin Tài Liệu
 | Thông tin | Chi tiết |
 |---|---|
 | **Họ và tên** | Nguyễn Thanh Hiếu |
-| **Ngày thực hiện** | 20/05/2026 — Cập nhật 30/05/2026 |
+| **Ngày thực hiện** | 22/05/2026 |
 | **Tuần thực tập** | Tuần 4 — Ngày 17 |
 | **Đơn vị thực tập** | Nhân Hòa |
 | **Người hướng dẫn** | Vũ Trường An |
@@ -37,7 +38,7 @@
 
 ### 1.1 Mục Tiêu
 
-Xây dựng hệ thống web có tính sẵn sàng cao (High Availability) nhằm **loại bỏ hoàn toàn Single Point of Failure** ở tất cả các tầng. Hệ thống tự động xử lý mọi sự cố mà không cần can thiệp thủ công.
+Xây dựng hệ thống web có tính sẵn sàng cao (High Availability) nhằm **loại bỏ hoàn toàn Single Point of Failure** ở tất cả các tầng. Hệ thống có khả năng tự động phát hiện và xử lý sự cố mà không yêu cầu sự can thiệp thủ công của người vận hành.
 
 **Các yêu cầu cụ thể:**
 
@@ -97,7 +98,7 @@ Xây dựng hệ thống web có tính sẵn sàng cao (High Availability) nhằ
 
 ### 2.1 Đặt Hostname cho Từng Node
 
-**Mục đích:** Hostname rõ ràng giúp phân biệt node trong log, Prometheus và Grafana.
+**Mục đích:** Hostname được định nghĩa rõ ràng giúp phân biệt node trong system log, Prometheus target và Grafana dashboard.
 
 ```bash
 # edge-01
@@ -138,9 +139,9 @@ EOF
 
 ### 3.1 Lý Thuyết — SSL Termination
 
-Mô hình **SSL Termination** tập trung việc giải mã HTTPS vào HAProxy. Backend Apache chỉ nhận HTTP thuần — giảm tải CPU đáng kể và quản lý certificate tập trung tại một chỗ.
+Mô hình **SSL Termination** tập trung toàn bộ quá trình giải mã HTTPS tại tầng HAProxy. Các Backend Apache chỉ tiếp nhận lưu lượng HTTP nội bộ, giảm đáng kể tải xử lý mã hóa trên Web Server và cho phép quản lý tập trung toàn bộ certificate tại một điểm duy nhất.
 
-> **Lưu ý:** HAProxy yêu cầu file `.pem` chứa cả Public Certificate **và** Private Key trong một file duy nhất theo thứ tự: **cert trước, key sau**.
+> **Lưu ý:** HAProxy yêu cầu file `.pem` chứa **đồng thời** Public Certificate và Private Key trong một file duy nhất. Thứ tự bắt buộc là: **certificate trước, private key sau**. Sai thứ tự sẽ khiến HAProxy từ chối khởi động.
 
 ### 3.2 Tạo Self-signed Certificate — Trên edge-01
 
@@ -182,15 +183,16 @@ sudo chmod 600 /etc/ssl/haproxy/cert.pem
 
 ### 4.1 Lý Thuyết — VRRP
 
-**VRRP (Virtual Router Redundancy Protocol)** là giao thức Layer 3, hoạt động độc lập với ứng dụng.
+**VRRP (Virtual Router Redundancy Protocol)** là giao thức Layer 3 hoạt động độc lập với lớp ứng dụng, đảm bảo tính liên tục của Virtual IP (VIP) khi một node Load Balancer gặp sự cố.  
 
-- **edge-01 (MASTER, priority 110):** Giữ VIP, broadcast VRRP advertisement mỗi 1 giây
-- **edge-02 (BACKUP, priority 100):** Lắng nghe. Sau 3 giây không nhận được → tự nâng lên MASTER, gửi Gratuitous ARP
-- **Thời gian failover:** < 3 giây
+- **edge-01 (MASTER, priority 110):** Nắm giữ VIP và phát tín hiệu VRRP advertisement dạng Multicast mỗi 1 giây.  
+- **edge-02 (BACKUP, priority 100):** Lắng nghe tín hiệu từ MASTER. Nếu không nhận được tín hiệu trong 3 giây liên tiếp, node này tự nâng trạng thái lên MASTER và gửi Gratuitous ARP để cập nhật bảng định tuyến trên toàn mạng.  
+- **Thời gian Failover thực tế:** < 3 giây.  
 
-Hệ thống quản lý **2 VIP** qua 2 VRRP instance:
-- `VI_1` → VIP-HTTP `192.168.136.100` (web traffic)
-- `VI_2` → VIP-MySQL `192.168.136.101` (database traffic)
+Hệ thống quản lý **2 VIP** thông qua 2 VRRP Instance riêng biệt, đảm bảo cả tầng Web và tầng Database đều Failover đồng thời, loại bỏ nguy cơ lệch pha giữa hai tầng:
+ 
+- `VI_1` → VIP-HTTP `192.168.136.100` (lưu lượng Web)
+- `VI_2` → VIP-MySQL `192.168.136.101` (kết nối Database)
 
 ### 4.2 Cài Đặt và Cấu Hình sysctl — edge-01 và edge-02
 
@@ -212,7 +214,7 @@ sysctl net.ipv4.ip_nonlocal_bind
 ```
 <img width="235" height="80" alt="{DBD86E95-9A00-4957-9D67-1FDC30F9E473}" src="https://github.com/user-attachments/assets/680e8a8f-c438-45b8-b4ce-e134cca04229" />
 
-> **Quan trọng:** Nếu `ip_nonlocal_bind = 0`, Keepalived chạy nhưng VIP không xuất hiện — đây là lỗi hay gặp nhất.
+> **Quan trọng:** Nếu tham số `net.ipv4.ip_nonlocal_bind` có giá trị `0`, Linux Kernel sẽ từ chối cho phép Keepalived bind VIP vào interface. Keepalived sẽ báo cáo trạng thái `active (running)` nhưng VIP sẽ không xuất hiện  
 
 ### 4.3 Cấu Hình Keepalived — edge-01 (MASTER)
 
@@ -275,16 +277,15 @@ vrrp_instance VI_2 {
 <img width="354" height="372" alt="{D80CEE46-F4A4-4545-B881-03B957851011}" src="https://github.com/user-attachments/assets/a0e6d6e5-e3f7-49f8-b105-c81b219736ec" />
 
 ### 4.4 Cấu Hình Keepalived — edge-02 (BACKUP)
+Sao chép file cấu hình từ edge-01 và điều chỉnh 3 tham số sau:
 
 ```bash
 sudo nano /etc/keepalived/keepalived.conf
 # Sao chép từ edge-01 và sửa 3 chỗ:
 ```
-
 ```
 # Sửa trong global_defs:
 router_id edge-02
-
 # Sửa trong cả VI_1 và VI_2:
 state    BACKUP
 priority 100
@@ -292,8 +293,7 @@ priority 100
 <img width="392" height="332" alt="{5F0C0E84-5F20-4A78-88FE-D0CFA8DCE462}" src="https://github.com/user-attachments/assets/2dfc8ab0-9c74-4b71-ac51-f51c9e6bfb3a" />
 
 ### 4.5 Notify Script — edge-01 và edge-02
-Tạo file thông báo cho log dễ đọc  
-
+Script notify ghi nhận sự kiện chuyển đổi trạng thái vào log, hỗ trợ việc kiểm tra và xử lý sự cố sau này.  
 
 ```bash
 sudo tee /etc/keepalived/notify.sh << 'SCRIPT'
@@ -321,20 +321,22 @@ ip addr show ens33 | grep "136.10"
 <img width="478" height="144" alt="{F0A6A0CA-8509-40AC-8498-463C27010E6A}" src="https://github.com/user-attachments/assets/ac4187b8-a7e0-438a-a688-16b102d6a00b" />
 <img width="1402" height="501" alt="image" src="https://github.com/user-attachments/assets/4f2fa6ba-7135-4a00-be33-51967afd50ae" />
 
-Máy edge-02 Backup chưa có VIP     
+> *Trạng thái trên edge-02 (BACKUP): VIP chưa được gán — hoạt động đúng theo thiết kế.*  
+    
 <img width="529" height="182" alt="{C8EF45EA-3B2C-40DF-AFF4-85D92DAD20E9}" src="https://github.com/user-attachments/assets/75619082-e59d-4116-ae20-5442c54c24d8" />
 
 ---
 
 ## 5. HAProxy — Load Balancer
 
-### 5.1 Lý Thuyết — HAProxy Làm 3 Việc Chính
+### 5.1 Lý Thuyết 
+HAProxy đảm nhiệm ba chức năng kỹ thuật cốt lõi trong hệ thống này:  
 
-1. **SSL Termination:** Nhận HTTPS, giải mã TLS tại LB, forward HTTP thuần xuống backend
-2. **Load Balancing (Round Robin):** Phân phối request đến web-01 và web-02 luân phiên
-3. **Health Check tự động:** Cứ 2 giây kiểm tra `/health.html`. 3 lần fail → loại backend; 2 lần success → đưa vào lại
-
-Từ HAProxy 2.0+, có sẵn Prometheus metrics endpoint tích hợp — không cần cài exporter riêng.
+1. **SSL Termination:** Tiếp nhận và giải mã toàn bộ kết nối HTTPS từ phía Client tại tầng Load Balancer, sau đó forward lưu lượng HTTP thuần đến các Backend.  
+2. **Load Balancing — Round Robin:** Phân phối đều các request đến web-01 và web-02 theo vòng tròn luân phiên.  
+3. **Automated Health Check:** Kiểm tra trạng thái của từng Backend mỗi 2 giây bằng cách gửi HTTP GET tới `/health.html`. Sau 3 lần thất bại liên tiếp (6 giây), Backend tương ứng bị loại khỏi pool. Sau 2 lần thành công liên tiếp, Backend được đưa trở lại pool tự động.
+  
+> Kể từ phiên bản HAProxy 2.0, Prometheus Metrics Endpoint đã được tích hợp sẵn — không cần cài đặt exporter bổ sung. Endpoint được kích hoạt thông qua cấu hình `listen stats`
 
 ### 5.2 Cài Đặt và Cấu Hình — edge-01 và edge-02
 
@@ -465,7 +467,9 @@ sudo systemctl restart apache2 php8.1-fpm
 ```
 <img width="550" height="218" alt="{F08F56D5-3406-4F47-BEBC-CD56479C786B}" src="https://github.com/user-attachments/assets/3dce133f-dfb1-4e07-890c-af0af5fbc194" />
 
-**Lý do dùng PHP-FPM thay vì mod_php:** PHP-FPM tách riêng pool process PHP, giao tiếp qua Unix socket. Static file (CSS, JS, ảnh) không cần qua PHP — ít tốn RAM hơn, throughput cao hơn, crash isolation tốt hơn.
+**Lý do lựa chọn PHP-FPM thay vì mod\_php:**
+ 
+PHP-FPM (FastCGI Process Manager) vận hành tách biệt trong pool process riêng và giao tiếp với Apache thông qua Unix Domain Socket, bỏ qua hoàn toàn overhead của giao thức mạng. Các file tĩnh (CSS, JavaScript, hình ảnh) được Apache phục vụ trực tiếp mà không cần đi qua PHP interpreter — giúp giảm mức tiêu thụ RAM, tăng throughput và cô lập lỗi hiệu quả hơn so với mô hình mod\_php..
 
 ### 6.2 Cấu Hình VirtualHost WordPress — web-01 và web-02
 
@@ -515,20 +519,17 @@ curl http://192.168.136.134/health.html   # → OK
 
 ## 7. MariaDB Galera Cluster
 
-### 7.1 Lý Thuyết — Tại Sao Cần Galera?
-
-Phiên bản báo cáo trước chỉ cài MariaDB đơn lẻ trên web-02 — đây là **Single Point of Failure cuối cùng** trong hệ thống: nếu web-02 chết, database mất, WordPress không thể hoạt động.
-
-**Galera Cluster giải quyết triệt để:**
-- Active-active: cả web-01 và web-02 đều accept read/write
-- Khi một node DB chết — node còn lại tiếp tục phục vụ không gián đoạn
-- HAProxy phân phối kết nối DB qua VIP-MySQL `192.168.136.101`
-- **garbd** (Galera Arbitrator) chạy trên edge-01 đóng vai trò node thứ 3 để đảm bảo quorum mà không cần thêm máy chủ DB
+### 7.1 Lý Thuyết
+**Galera Cluster:**
+- **Active-Active Architecture:** Cả web-01 và web-02 đều đồng thời tiếp nhận thao tác đọc và ghi.
+- **Tính liên tục:** Khi một node DB gặp sự cố, node còn lại tiếp tục phục vụ không gián đoạn.
+- **Kết nối qua VIP-MySQL:** WordPress kết nối tới `192.168.136.101`, HAProxy chịu trách nhiệm phân phối kết nối đến node DB đang hoạt động.
+- **Galera Arbitrator (garbd):** Tiến trình `garbd` chạy trên edge-01 đóng vai trò node thứ ba tham gia bầu chọn Quorum, mà không lưu trữ bất kỳ dữ liệu nào — giải pháp tiết kiệm tài nguyên để đảm bảo Quorum `2/3`.
 
 ### 7.2 Cài Đặt MariaDB 10.11 — web-01 và web-02
-
+Ubuntu 22.04 mặc định chỉ cung cấp MariaDB 10.6 trong repository. Cần thêm repository chính thức của MariaDB để cài đặt phiên bản 10.11 LTS.   
 ```bash
-# Thêm MariaDB 10.11 LTS repo (bắt buộc — Ubuntu 22.04 chỉ có 10.6)
+# Thêm MariaDB 10.11 LTS repo 
 curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup \
   | sudo bash -s -- --mariadb-server-version=mariadb-10.11
 
@@ -563,7 +564,7 @@ wsrep_slave_threads    = 2
 EOF
 ```
 
-> **Quan trọng:** Sau đó thêm vào file cấu hình trên **từng node** theo IP tương ứng:
+> Các tham số `wsrep_node_address` và `wsrep_node_name` phải được cấu hình với giá trị riêng biệt tương ứng với từng node, không được dùng chung một file cấu hình.
 
 ```bash
 # Trên web-01:
@@ -579,7 +580,7 @@ wsrep_node_name    = "web-02"' \
 
 ```bash
 # Mở firewall Galera trên cả 2 web node
-sudo ufw allow from 192.168.136.0/24 to any port 3306   # MySQL
+sudo ufw allow from 192.168.136.0/24 to any port 3306  
 sudo ufw allow from 192.168.136.0/24 to any port 4567   # Galera gcomm
 sudo ufw allow from 192.168.136.0/24 to any port 4568   # Galera IST
 sudo ufw allow from 192.168.136.0/24 to any port 4444   # SST
@@ -655,7 +656,9 @@ SQL
 
 ### 7.6 Cài garbd (Galera Arbitrator) — edge-01
 
-**Mục đích:** garbd là node thứ 3 trong cluster không lưu data, chỉ tham gia bầu chọn quorum. Đảm bảo khi 1 trong 2 DB node chết, cluster vẫn đạt quorum `2/3` và tiếp tục hoạt động.
+**Mục đích kỹ thuật:** `garbd` là tiến trình Arbitrator tham gia vào cơ chế bầu chọn Quorum của Galera mà không lưu trữ bất kỳ dữ liệu nào. Với cấu hình `2 DB Nodes + 1 garbd = 3 votes`, hệ thống duy trì Quorum `2/3` ngay cả khi một trong hai DB Node gặp sự cố, ngăn chặn tình trạng Split-Brain và đảm bảo Cluster tiếp tục ở trạng thái `Primary`.  
+
+> Phiên bản của `galera-arbitrator-4` trên edge-01 **phải khớp chính xác** với phiên bản Galera đang chạy trên web-01 và web-02. Cần thêm MariaDB repository trên edge-01 để cài đặt đúng phiên bản.    
 
 ```bash
 #  Thêm MariaDB repo trên edge-01
@@ -706,15 +709,18 @@ sudo mysql -h 192.168.136.145 -u root \
 
 Redis đơn lẻ trên web-02 là SPOF — nếu web-02 chết, toàn bộ session mất, tất cả user bị logout.
 
-**Redis Sentinel cung cấp:**
-- **Monitoring:** 3 Sentinel liên tục kiểm tra trạng thái Redis Master
-- **Auto Failover:** Khi Master chết, Sentinel bầu chọn Replica mới làm Master trong **5-10 giây**
-- **Quorum:** Cần `2/3` Sentinel đồng ý Master chết → mới thực hiện failover (tránh split-brain)
+**Redis Sentinel cung cấp:**  
+- **Monitoring:** 3 tiến trình Sentinel liên tục kiểm tra trạng thái của Redis Master theo thời gian thực.  
+- **Automated Failover:** Khi Master gặp sự cố, Sentinel tự động bầu chọn Replica phù hợp để nâng lên làm Master mới trong vòng **5–10 giây**.  
+- **Quorum bầu chọn:** Yêu cầu tối thiểu `2/3` Sentinel đồng thuận rằng Master đã mất kết nối trước khi khởi động Failover — cơ chế này ngăn chặn hiệu quả tình trạng Split-Brain.  
 
-**Kiến trúc**
-- Redis Master: web-02 
-- Redis Replica: web-01 
-- Redis Sentinel: chạy trên web-01, web-02, edge-01 (3 node = quorum)
+**Kiến trúc triển khai:**
+ 
+| Node    | Vai trò Redis        | Redis Sentinel |
+| :------ | :------------------- | :------------- |
+| web-02  | Redis Master         | Sentinel (port `26379`) |
+| web-01  | Redis Replica        | Sentinel (port `26379`) |
+| edge-01 | Không có Redis       | Sentinel (port `26379`) |
 
 ### 8.2 Cài Đặt Redis trên web-01 
 
@@ -1410,19 +1416,8 @@ sudo systemctl start node_exporter
 | Dashboard Grafana hoạt động | ✅ 4 dashboard (node/HAProxy/Redis/MySQL) |
 | Single Point of Failure còn lại | Không còn |
 
-### 13.2 So Sánh Trước và Sau
 
-| Thành phần | Phiên bản đầu | Phiên bản hoàn chỉnh |
-|---|---|---|
-| Load Balancer | 2 node LB + VRRP | ✅ Giống — đã ổn |
-| Web Backend | 2 node Apache | ✅ Giống — đã ổn |
-| Database | MariaDB đơn lẻ trên web-02 | ✅ **Galera Cluster + garbd** |
-| Session Store | Redis đơn lẻ trên web-02 | ✅ **Redis Master-Replica + Sentinel** |
-| DB Connection | Direct IP web-02 | ✅ **Qua VIP-MySQL (HAProxy)** |
-| WordPress config | Hard-code IP web-02 | ✅ **Redis Sentinel + VIP-MySQL** |
-| SPOF còn lại | Database = web-02 | ✅ **Không còn SPOF** |
-
-### 13.3 Bài Học Rút Ra
+### 13.2 Bài Học Rút Ra
 
 **Về kỹ thuật:**
 
@@ -1451,5 +1446,4 @@ sudo systemctl start node_exporter
 
 ---
 
-*Báo cáo hoàn chỉnh · Cập nhật lần cuối 30/05/2026*
-*Nguyễn Thanh Hiếu · Intern IT — Tuần 4 · Nhân Hòa*
+*Nguyễn Thanh Hiếu · Intern IT —  Nhân Hòa*
