@@ -35,6 +35,7 @@ Trong quá trình cấu hình DNS Server trên môi trường Linux Ubuntu serve
 
 #### Bước 6 : check dig
 <img width="460" height="257" alt="image" src="https://github.com/user-attachments/assets/23a07f1d-4c51-467f-aa0b-8db15aaaeab1" />
+
 DNS đã hoạt động thành công
 
 
@@ -64,7 +65,9 @@ DNS đã hoạt động thành công
 <img width="286" height="78" alt="image" src="https://github.com/user-attachments/assets/64619360-1c59-4e1a-8e0e-1425c5a566b7" />
 
 #### 3. cài mysql server
-login vào mysql, tạo database và user bằng lệnh sql
+
+login vào mysql, tạo database và user bằng lệnh sql  
+
 <img width="484" height="170" alt="image" src="https://github.com/user-attachments/assets/2b823631-c6bd-4e53-bed2-dc5f7cf12629" />
 
 #### 4. Cài đặt php và các modul phổ biến 
@@ -77,6 +80,7 @@ curl -LO https://wordpress.org/latest.tar.gz rồi giải nén
 
 #### 6. Kiểm tra
 <img width="838" height="464" alt="image" src="https://github.com/user-attachments/assets/c89673c6-bd5a-484c-916a-d0a621f9137a" />
+
 Hoàn thành LAMP Stack
 
 ---
@@ -111,6 +115,7 @@ hiện syntax is ok , test successfull thì reload
 
 <img width="740" height="437" alt="image" src="https://github.com/user-attachments/assets/3901caee-1271-42e8-8dbe-e989c00d2037" />
 
+
 Hoàn thành LEMP Stack
 
 ---
@@ -133,6 +138,7 @@ Hoàn thành LEMP Stack
 #### 1.Cài đặt mariaDB
 
 <img width="309" height="68" alt="image" src="https://github.com/user-attachments/assets/9b178bdf-a6b1-46c4-ba55-f35e09d3d199" />
+
 cấu hình cho phép kết nối qua mạng
 
 <img width="382" height="147" alt="image" src="https://github.com/user-attachments/assets/20305612-46bf-4d89-9771-280089242080" />
@@ -141,13 +147,16 @@ cấu hình cho phép kết nối qua mạng
 <img width="406" height="209" alt="image" src="https://github.com/user-attachments/assets/b09591c4-6da1-4074-b34b-4228db2792fa" />
 
 #### 3. Mở tường lửa 
+
 chỉ mở cho đúng IP của máy Node 1
+
 <img width="294" height="43" alt="image" src="https://github.com/user-attachments/assets/22d3b647-4d11-44f0-90c7-bf94a048c076" />
 
 ## Tạo Web trên Node 1
 
 #### 1.Cài mariaDB client
 <img width="457" height="88" alt="image" src="https://github.com/user-attachments/assets/635f4e20-f77c-41fe-bb26-58d7a901c4a8" />
+
 sau khi cài, test thử xem có connect database không
 
  <img width="479" height="123" alt="image" src="https://github.com/user-attachments/assets/2e0da1b4-b032-4b9e-8fab-2f39267e1391" />
