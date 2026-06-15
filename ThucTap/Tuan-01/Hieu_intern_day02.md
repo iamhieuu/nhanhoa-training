@@ -55,6 +55,7 @@ DNS đã hoạt động thành công
     * Engine-X (Nginx).
     * MySQL/MariaDB.
     * PHP/Python/Perl.
+      
 ## Triển khai Wordpress LAMP stack
 #### 1. cài đặt apache2
 <img width="491" height="258" alt="image" src="https://github.com/user-attachments/assets/b96bc83b-774c-482b-bae5-c818b26321f8" />
@@ -82,7 +83,9 @@ Hoàn thành LAMP Stack
 
 ## Triển khai LEMP Stack
 Trước khi bắt đầu làm Nginx, ta cần tắt apache 
+  
   <img width="494" height="101" alt="image" src="https://github.com/user-attachments/assets/9c952f88-ae19-48cd-925c-8bf11eb9ecb9" />
+
 #### 1.Cài đặt Nginx
 <img width="377" height="71" alt="image" src="https://github.com/user-attachments/assets/1ab10a0b-2a00-46ec-bc3a-356b02364fbf" />
 
@@ -102,8 +105,10 @@ Trước khi bắt đầu làm Nginx, ta cần tắt apache
 
 #### 7.Kiểm tra và khởi động lại
 Với nginx, việc kiểm tra trước khi khởi động lại là bắt buộc 
+
 <img width="422" height="56" alt="image" src="https://github.com/user-attachments/assets/9752fdc3-c38a-4dac-84d4-1caa9324f355" />
-hiện syntax is ok , test successfull thì reload
+hiện syntax is ok , test successfull thì reload  
+
 <img width="740" height="437" alt="image" src="https://github.com/user-attachments/assets/3901caee-1271-42e8-8dbe-e989c00d2037" />
 
 Hoàn thành LEMP Stack
@@ -112,10 +117,12 @@ Hoàn thành LEMP Stack
 
 ## Triển khai site wordpress tách web server, DB server (1 node web server, 1 node DB server)
 ### Sơ đồ :
+
 #### Web Server (Node 1):
 * OS: Ubuntu
 * Services: Nginx, PHP 8.x-FPM
 * IP: 192.168.254.100
+  
 #### Database Server (Node 2):
 * OS: Ubuntu
 * Services: MariaDB
@@ -124,8 +131,10 @@ Hoàn thành LEMP Stack
 ## Tạo Database trên Node 2
 
 #### 1.Cài đặt mariaDB
+
 <img width="309" height="68" alt="image" src="https://github.com/user-attachments/assets/9b178bdf-a6b1-46c4-ba55-f35e09d3d199" />
 cấu hình cho phép kết nối qua mạng
+
 <img width="382" height="147" alt="image" src="https://github.com/user-attachments/assets/20305612-46bf-4d89-9771-280089242080" />
 
 #### 2.Tạo Database và user cấp quyền cho web server
@@ -140,6 +149,7 @@ chỉ mở cho đúng IP của máy Node 1
 #### 1.Cài mariaDB client
 <img width="457" height="88" alt="image" src="https://github.com/user-attachments/assets/635f4e20-f77c-41fe-bb26-58d7a901c4a8" />
 sau khi cài, test thử xem có connect database không
+
  <img width="479" height="123" alt="image" src="https://github.com/user-attachments/assets/2e0da1b4-b032-4b9e-8fab-2f39267e1391" />
  
 #### 2.Trỏ WordPress sang Node 2
@@ -156,6 +166,7 @@ sau khi cài, test thử xem có connect database không
 
 ---
 ## Bash Script tự động cài LAMP/LEMP Stack
+
 #### Tạo file script cài LAMP
 Nội dung trong file sẽ là các câu lệnh đã thực hiện ở phần triển khai LAMP Stack, lần này ta dùng Mariadb thay vì SQL
 <img width="674" height="284" alt="image" src="https://github.com/user-attachments/assets/57ccf912-824d-4c69-bd09-8df17dafa529" />
@@ -169,7 +180,9 @@ Nội dung trong file sẽ là các câu lệnh đã thực hiện ở phần tr
 #### Sử dụng sudo ./install_...sh để chạy
 
 ---
+
 ## BÁO CÁO TRIỂN KHAI WEB SERVER IIS
+
 ### Triển khai site demo1 html basic trên web server IIS trên windows server 2022
 ### Sơ đồ :
 Hệ điều hành: Windows Server 2022 Datacenter.
@@ -184,6 +197,7 @@ tích chọn các tính năng cần thiết
 <img width="447" height="164" alt="image" src="https://github.com/user-attachments/assets/a01f97a9-8967-4278-890e-fca3c3f3e967" />
 
 ### Triển khai site demo1 html basic trên web server IIS trên windows server 2022
+
 ####  Tạo file html cơ bản :
 <img width="323" height="180" alt="image" src="https://github.com/user-attachments/assets/9f92d45b-b855-4c3c-9243-4c97415d6e91" />
 
