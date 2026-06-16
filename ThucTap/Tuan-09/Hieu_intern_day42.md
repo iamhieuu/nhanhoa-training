@@ -447,3 +447,10 @@ congty.vn. CAA 0 issue "sectigo.com"
 - Tăng bảo mật Domain.
 - Giảm nguy cơ giả mạo Website.
 
+| Phương pháp | Ưu điểm | Nhược điểm |
+|------------|----------|------------|
+| HTTP-01 | Cấu hình đơn giản, Certbot hỗ trợ tốt, phổ biến nhất | Yêu cầu mở Port 80, không hỗ trợ Wildcard SSL |
+| DNS-01 | Hỗ trợ Wildcard SSL, không cần Web Server, phù hợp Internal Server | Cấu hình DNS phức tạp hơn, cần chờ DNS cập nhật |
+| TLS-ALPN-01 | Không cần Port 80, chỉ cần Port 443 | Ít được hỗ trợ hơn, cấu hình phức tạp hơn HTTP-01 |
+
+
