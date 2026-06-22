@@ -128,9 +128,135 @@ openssl x509 -in /etc/ssl/nhanhoa/test.crt -noout -modulus | md5sum
  
 ### Khái niệm
  
-ZeroSSL là một CA miễn phí, sử dụng giao thức ACME (giống Let's Encrypt) nhưng có thêm tùy chọn tạo cert qua giao diện web thân thiện, hỗ trợ cả HTTP Validation và DNS Validation, và cho phép cấp tới 3 certificate miễn phí song song với thời hạn 90 ngày.  
+ZeroSSL là một CA miễn phí, sử dụng giao thức ACME (giống Let's Encrypt) nhưng có thêm tùy chọn tạo cert qua giao diện web thân thiện, hỗ trợ cả HTTP Validation và DNS Validation, và cho phép cấp tới 3 certificate miễn phí song song với thời hạn 90 ngày.    
 
+#### Bước 1 — Đăng ký tài khoản ZeroSSL
+ 
+```
+1. Truy cập https://app.zerossl.com/signup
+2. Đăng ký bằng email công ty (vd: it@nhanhoa.vn)
+3. Xác thực email
+4. Đăng nhập vào Dashboard
+```
+ 
+#### Bước 2 — Tạo Certificate mới
+ 
+```
+1. Vào Dashboard → Certificates → New Certificate
+2. Nhập domain: hieucute.id.vn
+3. Chọn "90-Day Certificate" (miễn phí)
+4. Chọn phương thức tạo CSR:
+   - "I'll upload my CSR" 
+```
+ 
+#### Bước 3b  — Tự tạo CSR trên Ubuntu để upload lên ZeroSSL
+ 
+```bash
+sudo mkdir -p /etc/ssl/zerossl
+cd /etc/ssl/zerossl
+ 
+# Tạo private key
+sudo openssl genrsa -out yourdomain.key 2048
+sudo chmod 600 yourdomain.key
+ 
+# Tạo CSR
+sudo openssl req -new \
+    -key yourdomain.key \
+    -out yourdomain.csr \
+    -subj "/C=VN/ST=Hanoi/L=Hanoi/O=Nhan Hoa Corporation/CN=hieucute.id.vn"
+ 
+# Xem nội dung CSR để copy-paste lên ZeroSSL
+cat yourdomain.csr
+```
+ 
+#### Bước 4 — HTTP Validation
+ 
+ZeroSSL sẽ cung cấp một file cần đặt tại `/.well-known/pki-validation/`.
+ 
+```bash
+# Tạo thư mục validation
+sudo mkdir -p /var/www/html/.well-known/pki-validation/
+ 
+# Tạo file ZeroSSL yêu cầu (tên file và nội dung do ZeroSSL cung cấp)
+sudo nano /var/www/html/.well-known/pki-validation/ABCDEF123456.txt
+# Paste nội dung verification string ZeroSSL cung cấp, lưu lại
+ 
+# Kiểm tra file truy cập được từ internet
+curl http://yourdomain.nhanhoa.vn/.well-known/pki-validation/ABCDEF123456.txt
+```
+ 
+Sau khi curl trả về đúng nội dung, quay lại Dashboard ZeroSSL → nhấn **Verify Domain**.
+ 
+#### Bước 5 — Download Certificate
+ 
+Sau khi verify thành công, ZeroSSL cung cấp 3 file để download:
+ 
+```
+certificate.crt   → chứng chỉ domain
+ca_bundle.crt      → chứng chỉ trung gian (intermediate)
+private.key        → khóa riêng tư (chỉ có nếu dùng Auto-Generate CSR)
+```
+ 
+#### Bước 7 — Upload và cài đặt lên Ubuntu Server
+ 
+```bash
+# Tạo thư mục lưu trữ
+sudo mkdir -p /etc/ssl/zerossl/yourdomain.nhanhoa.vn
+ 
+# Upload 3 file từ máy local lên server (chạy lệnh này từ máy local, không phải server)
+scp certificate.crt ca_bundle.crt private.key \
+    user@SERVER_IP:/tmp/
+ 
+# Trên server Ubuntu — di chuyển vào đúng vị trí
+sudo mv /tmp/certificate.crt /etc/ssl/zerossl/yourdomain.nhanhoa.vn/
+sudo mv /tmp/ca_bundle.crt   /etc/ssl/zerossl/yourdomain.nhanhoa.vn/
+sudo mv /tmp/private.key     /etc/ssl/zerossl/yourdomain.nhanhoa.vn/
+ 
+# Tạo file fullchain (cert + intermediate) — cần thiết để tránh lỗi thiếu intermediate
+sudo bash -c 'cat /etc/ssl/zerossl/yourdomain.nhanhoa.vn/certificate.crt \
+    /etc/ssl/zerossl/yourdomain.nhanhoa.vn/ca_bundle.crt \
+    > /etc/ssl/zerossl/yourdomain.nhanhoa.vn/fullchain.crt'
+ 
+# Phân quyền bảo mật
+sudo chmod 600 /etc/ssl/zerossl/yourdomain.nhanhoa.vn/private.key
+sudo chmod 644 /etc/ssl/zerossl/yourdomain.nhanhoa.vn/fullchain.crt
+sudo chown root:root /etc/ssl/zerossl/yourdomain.nhanhoa.vn/*
+```
+ 
+#### Bước 8 — Kiểm tra Certificate
+ 
+```bash
+# Xem thông tin cert
+sudo openssl x509 -in /etc/ssl/zerossl/yourdomain.nhanhoa.vn/certificate.crt \
+    -noout -subject -issuer -dates
+ 
+# Kết quả mong đợi — issuer KHÁC subject (đây là điểm khác Self-Signed):
+# subject=CN = yourdomain.nhanhoa.vn
+# issuer=C = AT, O = ZeroSSL, CN = ZeroSSL RSA Domain Secure Site CA
+ 
+# Verify chain đầy đủ
+sudo openssl verify \
+    -CAfile /etc/ssl/zerossl/yourdomain.nhanhoa.vn/ca_bundle.crt \
+    /etc/ssl/zerossl/yourdomain.nhanhoa.vn/certificate.crt
+```
+ 
+### Gia hạn ZeroSSL Certificate
+ 
+```bash
+# Kiểm tra ngày hết hạn
+openssl x509 -in /etc/ssl/zerossl/yourdomain.nhanhoa.vn/certificate.crt \
+    -noout -enddate
+ 
+# ZeroSSL không tự động gia hạn như Certbot (trừ khi setup ACME client riêng)
+# Quy trình: lặp lại bước 3-7 trước khi cert hết hạn 7-14 ngày
+ 
+# Tự động hóa bằng ACME client (acme.sh) hỗ trợ ZeroSSL
+curl https://get.acme.sh | sh -s email=it@nhanhoa.vn
+~/.acme.sh/acme.sh --set-default-ca --server zerossl
+~/.acme.sh/acme.sh --issue -d yourdomain.nhanhoa.vn --webroot /var/www/html
+```
 ---
+<img width="959" height="433" alt="image" src="https://github.com/user-attachments/assets/0d79c26f-10d2-4bea-ae95-6ec46b3e9dc7" />
 
 ## 3. Apache
  
