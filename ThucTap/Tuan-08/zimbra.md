@@ -462,7 +462,7 @@ Cài đặt thành công Zimbra OSE và khởi động được tất cả servi
 cd /tmp
 
 # Download Zimbra OSE cho Ubuntu 22.04
-wget https://files.zimbra.com/downloads/10.0.7_GA/zcs-10.0.7_GA_4659.UBUNTU22_64.20240330135542.tgz
+wget https://files.zimbra.com/downloads/10.1.0_GA/zcs-NETWORK-10.1.0_GA_4655.UBUNTU22_64.20240819064312.tgz
 
 # Kiểm tra file đã download
 ls -lh zcs-*.tgz
