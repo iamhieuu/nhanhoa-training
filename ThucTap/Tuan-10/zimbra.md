@@ -2027,13 +2027,10 @@ mkdir -p /backup/zimbra/full
 chown -R zimbra:zimbra /backup
 su - zimbra
 # Backup Full toàn bộ (có thể mất nhiều giờ với data lớn)
-zmbackup -f -a all -t /backup/zimbra/full
-
-# Giải thích tham số:
-# -f  = full backup
-# -a all = tất cả accounts
-# -t  = target directory
+rsync -avHK --delete /opt/zimbra/ /backup/zimbra/full/
 ```
+<img width="401" height="254" alt="image" src="https://github.com/user-attachments/assets/79d619ae-1b8e-46fb-8a02-ddf398eb9045" />
+<img width="606" height="366" alt="image" src="https://github.com/user-attachments/assets/06980063-2fc9-438f-839a-d7d1d819ca88" />
 
 **Xem tiến trình backup:**
 ```bash
@@ -2064,28 +2061,46 @@ zmmailbox -z -m iamhieu@mail.lab.local getRestURL "//?fmt=tgz" > \
 # Verify file backup
 ls -lh /backup/zimbra/user01_$(date +%Y%m%d).tgz
 ```
+<img width="769" height="96" alt="image" src="https://github.com/user-attachments/assets/434c84d8-359e-4181-8427-a6f2ff9ea2f9" />
 
 ## 16.6 Backup định kỳ tự động
 
 ```bash
-# Tạo script backup
 cat > /usr/local/bin/zimbra_backup.sh << 'SCRIPT'
 #!/bin/bash
-BACKUP_DIR="/backup/zimbra"
+
+BACKUP_DIR="/backup/zimbra/archives"
 DATE=$(date +%Y%m%d_%H%M)
 LOG="/var/log/zimbra_backup.log"
 
-echo "[$DATE] Bắt đầu backup..." >> $LOG
-su - zimbra -c "zmbackup -f -a all -t $BACKUP_DIR/full_$DATE" >> $LOG 2>&1
+# Tạo thư mục nếu chưa có
+mkdir -p $BACKUP_DIR
+
+echo "[$DATE] BẮT ĐẦU BACKUP ZIMBRA 10 FOSS..." >> $LOG
+
+# 1. Tắt Zimbra để đảm bảo tính toàn vẹn của dữ liệu
+echo "[$DATE] Đang tắt các dịch vụ Zimbra..." >> $LOG
+su - zimbra -c "zmcontrol stop" >> $LOG 2>&1
+
+# 2. Đóng gói và nén toàn bộ thư mục /opt/zimbra
+echo "[$DATE] Đang nén dữ liệu, quá trình này có thể mất thời gian..." >> $LOG
+tar -zcvpf $BACKUP_DIR/full_zimbra_$DATE.tar.gz /opt/zimbra >> $LOG 2>&1
 
 if [ $? -eq 0 ]; then
-    echo "[$DATE] Backup thành công!" >> $LOG
+    echo "[$DATE] Nén dữ liệu thành công!" >> $LOG
 else
-    echo "[$DATE] BACKUP THẤT BẠI — kiểm tra log!" >> $LOG
+    echo "[$DATE] CẢNH BÁO: Quá trình nén có lỗi!" >> $LOG
 fi
 
-# Xóa backup cũ hơn 7 ngày
-find $BACKUP_DIR -name "full_*" -mtime +7 -exec rm -rf {} \;
+# 3. Bật lại Zimbra
+echo "[$DATE] Đang khởi động lại dịch vụ Zimbra..." >> $LOG
+su - zimbra -c "zmcontrol start" >> $LOG 2>&1
+
+# 4. Xóa các file backup đã cũ hơn 7 ngày để tránh đầy ổ cứng
+find $BACKUP_DIR -name "full_zimbra_*.tar.gz" -mtime +7 -exec rm -f {} \;
+echo "[$DATE] Đã dọn dẹp file cũ. KẾT THÚC BACKUP." >> $LOG
+echo "---------------------------------------------------" >> $LOG
+
 SCRIPT
 
 chmod +x /usr/local/bin/zimbra_backup.sh
@@ -2095,15 +2110,7 @@ echo "0 2 * * * root /usr/local/bin/zimbra_backup.sh" \
   >> /etc/cron.d/zimbra-backup
 ```
 
-## ✅ Checklist Chương 16
 
-- [ ] Backup full thành công với `zmbackup -f -a all`
-- [ ] Backup từng user thành công
-- [ ] Export mailbox ra file .tgz
-- [ ] Cron job tự động backup đã cấu hình
-- [ ] File backup tồn tại trong `/backup/zimbra/`
-
----
 
 # CHƯƠNG 17. RESTORE EMAIL
 
@@ -2124,15 +2131,19 @@ Khôi phục thành công mailbox từ file backup.
 >  **Thực hiện trên: VM2 – 192.168.136.131**
 
 ```bash
-su - zimbra
+# 1. Tắt dịch vụ Zimbra
+su - zimbra -c "zmcontrol stop"
 
-# Restore user01 từ backup gần nhất
-zmrestore -f -a iamhieu@mail.lab.local -t /backup/zimbra/full_20260615_0200
+# 2. Khôi phục dữ liệu (Ví dụ khôi phục từ file nén tar.gz)
+# Lưu ý: Lệnh này sẽ ghi đè toàn bộ dữ liệu vào /opt/zimbra
+tar -zxvpf /backup/zimbra/archives/full_zimbra_20260615_0200.tar.gz -C /
 
-# Tham số:
-# -f = restore full
-# -a = account cần restore
-# -t = thư mục backup nguồn
+# 3. CHÚ Ý QUAN TRỌNG: Sửa lại toàn bộ phân quyền file cho Zimbra
+# Sau khi bung file nén hoặc rsync, quyền file thường bị sai lệch gây lỗi hệ thống.
+/opt/zimbra/libexec/zmfixperms -e -v
+
+# 4. Bật lại dịch vụ
+su - zimbra -c "zmcontrol start"
 ```
 
 ## 17.4 Import TGZ vào Mailbox hiện tại
@@ -2153,29 +2164,22 @@ zmmailbox -z -m iamhieu@mail.lab.local postRestURL "//?fmt=tgz&resolve=skip" \
 ## 17.5 Kiểm tra sau Restore
 
 ```bash
-# Kiểm tra số lượng email trong mailbox user01
-zmmailbox -z -m iamhieu@mail.lab.local getMailboxStats
-```
+# Xem thống kê số lượng email và dung lượng
+zmmailbox -z -m iamhieu@mail.lab.local gaf
+Msg Count: Số lượng email trong thư mục đó.
+Unread: Số lượng email chưa đọc.
+Size: Dung lượng của thư mục.
 
-**Output mong đợi:**
-```
-NumMessages: 25
-NumUnread: 3
-MailboxSize: 15728640
-```
+<img width="458" height="170" alt="image" src="https://github.com/user-attachments/assets/a6b9f114-5f1c-4a75-8a61-b45fb2c9d2ae" />
 
-**Kiểm tra qua WorldClient:**
 ```
-1. Đăng nhập WorldClient bằng iamhieu@mail.lab.local
-2. Kiểm tra Inbox, Sent, các folder khác
-3. Xác nhận email đã được khôi phục đúng
 ```
+zmprov gmi iamhieu@mail.lab.local
 
-## ✅ Checklist Chương 17
+```
+<img width="301" height="49" alt="image" src="https://github.com/user-attachments/assets/2936402e-c14e-41aa-84c7-f33194e9caae" />
 
-- [ ] Restore thành công mailbox user01 từ backup
-- [ ] Import TGZ vào mailbox hiện tại
-- [ ] Verify email đã restore bằng WorldClient
+
 
 ---
 
