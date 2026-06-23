@@ -1,11 +1,8 @@
-# TÀI LIỆU LAB ZIMBRA MAIL SERVER
 ## Triển khai và Quản trị Zimbra Collaboration Suite trên Ubuntu 22.04
 
-> **Đối tượng:** Fresher / System Admin Intern  
-> **Vai trò giảng viên:** Senior SysAdmin — 10 năm triển khai Mail Server  
 > **Phiên bản Zimbra:** Zimbra OSE (Open Source Edition) 10.x  
 > **Hệ điều hành:** Ubuntu Server 22.04 LTS  
-> **Ngày biên soạn:** 2026-06-15
+5
 
 ---
 
