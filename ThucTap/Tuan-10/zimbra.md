@@ -2,7 +2,6 @@
 
 > **Phiên bản Zimbra:** Zimbra OSE (Open Source Edition) 10.x  
 > **Hệ điều hành:** Ubuntu Server 22.04 LTS  
-5
 
 ---
 
@@ -1932,17 +1931,17 @@ Thực tế doanh nghiệp thường phân chia:
 Admin Console
 → Configure → Class of Service → default
 → Tab: General Information
-→ Tìm: "Storage"
-→ Mailbox Quota: 1073741824 (= 1 GB tính bằng bytes)
+→ Tìm: Nâng cao
+→ Hạn mức: 1024 (= 1 GB tính bằng bytes)
   ┌─────────────────────────────────────────────────────┐
   │  Bảng quy đổi:                                      │
-  │  1 GB  = 1,073,741,824 bytes                        │
-  │  2 GB  = 2,147,483,648 bytes                        │
-  │  5 GB  = 5,368,709,120 bytes                        │
+  │  1 GB  = 1024 MB                                    │
+  │  2 GB  = 2048 MB                                    │
   │  0     = Không giới hạn (unlimited)                 │
   └─────────────────────────────────────────────────────┘
 → Click [Save]
 ```
+<img width="954" height="437" alt="image" src="https://github.com/user-attachments/assets/947b3b21-61a4-45ab-8558-d848273c4291" />
 
 ### Cách 2: Quota riêng cho từng user
 
@@ -1951,9 +1950,10 @@ Admin Console
 → Manage → Accounts
 → Click đúp vào iamhieu@mail.lab.local
 → Tab: General Information
-→ Mailbox Quota: 2147483648  (2 GB riêng cho user này)
+→ Hạn mức: 1024  (1 GB riêng cho user này)
 → Click [Save]
 ```
+<img width="959" height="426" alt="image" src="https://github.com/user-attachments/assets/0d756775-33d1-4e2c-8ecf-5faf08e14755" />
 
 > 📌 **Lưu ý:** Quota cấu hình riêng tại Account sẽ **ghi đè** quota của CoS.
 
@@ -1983,6 +1983,7 @@ zmprov gqu lab.local
 # iamhieu@mail.lab.local  1073741824  102400000
 #   ↑ account        ↑ quota(B)  ↑ used(B)
 ```
+<img width="285" height="95" alt="image" src="https://github.com/user-attachments/assets/aea657a9-a782-4687-a66e-578669bb1089" />
 
 **Qua GUI:**
 ```
@@ -1997,13 +1998,6 @@ Khi user dùng gần đầy, Zimbra tự động gửi warning email:
 - **75%**: Cảnh báo đầu tiên
 - **90%**: Cảnh báo khẩn cấp
 - **100%**: Không nhận được mail mới, gửi lại bounce cho người gửi
-
-## ✅ Checklist Chương 15
-
-- [ ] Đặt quota 1GB cho user01 qua GUI
-- [ ] Đặt quota 2GB cho user02 qua CLI
-- [ ] Admin có quota unlimited
-- [ ] Kiểm tra quota đang dùng bằng `zmprov gqu`
 
 ---
 
@@ -2028,11 +2022,10 @@ Trường hợp cần Backup:
 >  **Thực hiện trên: VM2 – 192.168.136.131**
 
 ```bash
-su - zimbra
-
 # Tạo thư mục backup
 mkdir -p /backup/zimbra/full
-
+chown -R zimbra:zimbra /backup
+su - zimbra
 # Backup Full toàn bộ (có thể mất nhiều giờ với data lớn)
 zmbackup -f -a all -t /backup/zimbra/full
 
