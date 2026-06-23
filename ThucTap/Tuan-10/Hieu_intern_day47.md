@@ -1,4 +1,4 @@
-# Báo cáo thực tập ngày 45 - Thực hành SSL Termination
+# Báo cáo thực tập ngày 47 - Thực hành SSL Termination
 ---
 
 ## 1. Tạo SSL 
