@@ -1125,280 +1125,786 @@ zmaccts | grep admin
 ---
 
 # CHƯƠNG 12. KIỂM TRA LOG GỬI NHẬN EMAIL
-
->  **Đây là kỹ năng quan trọng nhất của một Mail Admin**
-
+ 
+> ⭐ **Đây là kỹ năng quan trọng nhất của một Mail Admin**
+ 
 ## 12.1 Mục tiêu
-
+ 
 Đọc và phân tích được log email để tìm nguyên nhân mail bị lỗi.
-
+ 
+---
+ 
 ## 12.2 Lý thuyết — Tại sao phải đọc log?
-
-Khi khách hàng báo "tôi không gửi/nhận được mail" → bạn KHÔNG thể đoán mò. Phải đọc log để biết chính xác:
+ 
+Khi khách hàng báo "tôi không gửi/nhận được mail" → bạn **KHÔNG thể đoán mò**. Phải đọc log để biết chính xác:
+ 
 - Mail có đến server chưa?
 - Bị chặn ở bước nào?
 - Lỗi gì? Do spam filter? Do DNS? Do full disk?
-
-## 12.3 Các file log quan trọng
-
->  **Thực hiện trên: VM2 – 192.168.136.131**
-
-```bash
-# Vị trí thư mục log của Zimbra
-ls /opt/zimbra/log/
-
-# Các file log quan trọng nhất:
-/opt/zimbra/log/mailbox.log    # Zimbra mailbox service (lưu mail, tìm kiếm)
-/opt/zimbra/log/mail.log       # Postfix MTA (gửi/nhận SMTP)
-/opt/zimbra/log/clamd.log      # ClamAV antivirus
-/var/log/mail.log              # System mail log 
-/var/log/syslog                # System log tổng hợp
+---
+ 
+## 12.3 File log tập trung của Zimbra
+ 
+> 💻 **Thực hiện trên: VM2 – 192.168.136.131**
+ 
+Trong cấu hình Lab này, **toàn bộ log của Zimbra được gộp vào một file duy nhất:**
+ 
 ```
-
+/var/log/zimbra.log
+```
+ 
+File này tập hợp log từ **tất cả các thành phần** của Zimbra, bao gồm:
+ 
+| Thành phần | Ghi log về |
+|-----------|-----------|
+| `postfix/smtpd` | Nhận kết nối SMTP đến |
+| `postfix/smtp` | Gửi mail đi |
+| `postfix/qmgr` | Quản lý hàng đợi (queue) |
+| `postfix/cleanup` | Làm sạch header email |
+| `amavis` | Lọc spam, virus (SpamAssassin + ClamAV) |
+| `dovecot` | IMAP/POP3 — client đọc mail |
+| `zimbra` | Zimbra mailbox service |
+ 
+```bash
+# Kiểm tra file log tồn tại
+ls -lh /var/log/zimbra.log
+ 
+# Xem dung lượng file log
+du -sh /var/log/zimbra.log
+```
+ 
+---
+ 
 ## 12.4 Xem log realtime
-
+ 
+> 💻 **Thực hiện trên: VM2 – 192.168.136.131**
+ 
 ```bash
-# Xem log mail realtime (Ctrl+C để thoát)
-su - zimbra
-tail -f /opt/zimbra/log/mail.log
-
-# Trong khi đang xem, gửi 1 email từ VM1 → quan sát log xuất hiện
+# Xem log realtime — Ctrl+C để thoát
+tail -f /var/log/zimbra.log
+ 
+# Xem 50 dòng gần nhất
+tail -50 /var/log/zimbra.log
+ 
+# Xem log và lọc chỉ các dòng liên quan đến postfix
+tail -f /var/log/zimbra.log | grep postfix
+ 
+# Xem log và lọc chỉ các dòng liên quan đến amavis
+tail -f /var/log/zimbra.log | grep amavis
 ```
-
+ 
+> 💡 **Mẹo thực tế:** Mở 2 terminal song song:
+> - Terminal 1: `tail -f /var/log/zimbra.log`
+> - Terminal 2: Gửi email test
+> → Quan sát log xuất hiện realtime khi email được xử lý
+ 
+---
+ 
 ## 12.5 Phân tích log — Ví dụ thực tế
-
-### Kịch bản: user01 gửi mail cho user02
-
-Khi gửi mail, log sẽ xuất hiện nhiều dòng. Dưới đây là phân tích chi tiết:
-
+ 
+### Kịch bản 1: Email gửi thành công (Happy Path)
+ 
+Khi `iamhieu@mail.lab.local` gửi mail cho `hieu@mail.lab.local`, file `/var/log/zimbra.log` sẽ ghi lại toàn bộ hành trình:
+ 
 ```
-Jun 15 10:30:01 mail postfix/smtpd[1234]: connect from client.lab.local[]
-Jun 15 10:30:01 mail postfix/smtpd[1234]: A1B2C3D4E5F6: client=client.lab.local[]
-Jun 15 10:30:01 mail postfix/cleanup[1235]: A1B2C3D4E5F6: message-id=<abc123@lab.local>
+Jun 15 10:30:01 mail postfix/smtpd[1234]: connect from client.lab.local[172.16.16.237]
+Jun 15 10:30:01 mail postfix/smtpd[1234]: A1B2C3D4E5F6: client=client.lab.local[172.16.16.237]
+Jun 15 10:30:01 mail postfix/cleanup[1235]: A1B2C3D4E5F6: message-id=<abc123@mail.lab.local>
 Jun 15 10:30:01 mail postfix/qmgr[1236]: A1B2C3D4E5F6: from=<iamhieu@mail.lab.local>, size=1024, nrcpt=1 (queue active)
-Jun 15 10:30:02 mail amavis[1237]: (12345-01) Passed CLEAN, <iamhieu@mail.lab.local> -> <hieu@mail.lab.local>, Message-ID: <abc123@lab.local>, mail_id: xyz789, Hits: -1.9, size: 1024, 823 ms
+Jun 15 10:30:02 mail amavis[1237]: (12345-01) Passed CLEAN, <iamhieu@mail.lab.local> -> <hieu@mail.lab.local>, Message-ID: <abc123@mail.lab.local>, mail_id: xyz789, Hits: -1.9, size: 1024, 823 ms
 Jun 15 10:30:02 mail postfix/smtp[1238]: A1B2C3D4E5F6: to=<hieu@mail.lab.local>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.8, status=sent (250 2.0.0 from MTA(smtp:[127.0.0.1]:10025))
 Jun 15 10:30:02 mail postfix/qmgr[1236]: A1B2C3D4E5F6: removed
 ```
-<img width="925" height="251" alt="image" src="https://github.com/user-attachments/assets/ef52c6e0-ff02-4889-b34f-3da273059324" />
+ <img width="848" height="226" alt="image" src="https://github.com/user-attachments/assets/804e6f46-af97-4e03-9ca3-2225d6f4fe4f" />
 
-### Giải thích từng dòng
-
+#### Giải thích từng dòng
+ 
 ```
-Dòng 1: postfix/smtpd → Postfix nhận kết nối từ client 
+Dòng 1: postfix/smtpd
+         → Postfix nhận kết nối từ client 172.16.16.237
          → ✅ Client kết nối được vào server
-
-Dòng 2: A1B2C3D4E5F6 → Queue ID (mã định danh của email này)
-         → Dùng Queue ID để trace toàn bộ hành trình của 1 email
-
-Dòng 3: cleanup → Email được làm sạch header
-         → message-id: ID duy nhất của email
-
-Dòng 4: qmgr → Queue manager nhận email, cho vào hàng đợi xử lý
-         → from: người gửi, size: kích thước, nrcpt: số người nhận
-
-Dòng 5: amavis → Amavis filter kiểm tra xong
+ 
+Dòng 2: A1B2C3D4E5F6 = Queue ID
+         → Mã định danh duy nhất của email này trong hệ thống
+         → Dùng Queue ID này để grep trace toàn bộ hành trình
+ 
+Dòng 3: postfix/cleanup
+         → Email được làm sạch header
+         → message-id: ID duy nhất do email client tạo ra
+ 
+Dòng 4: postfix/qmgr
+         → Queue Manager nhận email, đưa vào hàng đợi xử lý
+         → from: người gửi
+         → size: kích thước email (bytes)
+         → nrcpt=1: số người nhận
+ 
+Dòng 5: amavis
+         → Amavis filter đã kiểm tra xong
          → "Passed CLEAN" = email sạch, không spam, không virus
-         → Hits: -1.9 = điểm spam rất thấp (âm = sạch)
-
-Dòng 6: postfix/smtp → Postfix gửi email đến mailbox
-         → status=sent = GỬI THÀNH CÔNG
-
-Dòng 7: removed → Email đã xử lý xong, xóa khỏi queue
+         → Hits: -1.9 = điểm spam âm → rất sạch (càng âm càng tốt)
+ 
+Dòng 6: postfix/smtp
+         → Postfix giao email cho mailbox server
+         → relay=127.0.0.1:10024 = Amavis đang xử lý trung gian
+         → status=sent ✅ = GIAO THÀNH CÔNG
+ 
+Dòng 7: postfix/qmgr → removed
+         → Email đã xử lý xong, xóa khỏi queue
+         → ✅ Toàn bộ quá trình hoàn tất
 ```
-
-### Kịch bản: Mail bị từ chối (Reject)
-
+ 
+**Sơ đồ luồng tương ứng với log trên:**
+ 
 ```
-Jun 15 10:35:01 mail postfix/smtpd[1240]: NOQUEUE: reject: RCPT from unknown[1.2.3.4]:
-  554 5.7.1 <spam@hacker.com>: Relay access denied
+[iamhieu@mail.lab.local]
+         │
+         │ SMTP connect (Dòng 1-2)
+         ▼
+[postfix/smtpd] ──► Tạo Queue ID: A1B2C3D4E5F6
+         │
+         │ cleanup (Dòng 3)
+         ▼
+[postfix/cleanup] ──► Gán message-id
+         │
+         │ queue active (Dòng 4)
+         ▼
+[postfix/qmgr] ──► Đưa vào hàng đợi
+         │
+         │ gửi qua Amavis port 10024
+         ▼
+[amavis] ──► Kiểm tra spam/virus ──► Passed CLEAN (Dòng 5)
+         │
+         │ trả về port 10025
+         ▼
+[postfix/smtp] ──► status=sent (Dòng 6)
+         │
+         ▼
+[hieu@mail.lab.local] ✅ Đã nhận được mail
 ```
-
+ 
+---
+ 
+### Kịch bản 2: Mail bị từ chối — Relay denied
+ 
 ```
-Phân tích:
-→ NOQUEUE: Email bị chặn TRƯỚC khi vào queue
-→ reject: Từ chối
-→ Relay access denied: Server từ chối relay mail
-→ Nguyên nhân: IP 1.2.3.4 không được phép gửi mail qua server này
-→ Đây là bảo mật bình thường — không phải lỗi
+Jun 15 10:35:01 mail postfix/smtpd[1240]: NOQUEUE: reject: RCPT from unknown[1.2.3.4]: 554 5.7.1 <spam@hacker.com>: Relay access denied; from=<spam@hacker.com> to=<victim@mail.lab.local> proto=SMTP helo=<hacker.com>
 ```
-
-### Kịch bản: Mail bị spam filter chặn
-
+ 
+**Phân tích:**
+ 
 ```
-Jun 15 10:40:01 mail amavis[1245]: (12350-01) Blocked SPAM,
-  <sender@external.com> -> <iamhieu@mail.lab.local>,
-  Message-ID: <spam123@external.com>,
-  Hits: 8.5,
-  tag_level: 3.0, tag2_level: 6.0, kill_level: 6.9
+NOQUEUE   → Email bị chặn TRƯỚC khi vào queue (tiết kiệm tài nguyên)
+reject    → Từ chối hoàn toàn
+554 5.7.1 → Mã lỗi SMTP: "Transaction failed - Delivery not authorized"
+Relay access denied → Server từ chối relay mail
+IP 1.2.3.4 → IP không được phép gửi mail qua server này
+ 
+→ Đây là BẢO MẬT BÌNH THƯỜNG, không phải lỗi hệ thống
+→ Server đang tự bảo vệ khỏi bị dùng làm spam relay
 ```
-
+ 
+---
+ 
+### Kịch bản 3: Mail bị spam filter chặn
+ 
 ```
-Phân tích:
-→ Blocked SPAM: Email bị chặn vì spam
-→ Hits: 8.5 = điểm spam cao (> kill_level 6.9)
-→ tag_level 3.0: điểm để đánh dấu [SPAM] vào subject
-→ tag2_level 6.0: điểm để cảnh báo
-→ kill_level 6.9: vượt ngưỡng này → chặn luôn
-→ Hành động: Mail bị chuyển vào Junk/Spam folder
+Jun 15 10:40:01 mail amavis[1245]: (12350-01) Blocked SPAM, <sender@external.com> -> <iamhieu@mail.lab.local>, Message-ID: <spam123@external.com>, mail_id: abc999, Hits: 8.5, tag_level=3.0, tag2_level=6.0, kill_level=6.9, 1245 ms
 ```
-
+ 
+**Phân tích:**
+ 
+```
+Blocked SPAM  → Email bị chặn vì bị nhận dạng là spam
+Hits: 8.5     → Điểm spam = 8.5 (vượt kill_level)
+ 
+Bảng ngưỡng điểm spam (Hits):
+┌──────────────────────────────────────────────────────┐
+│  tag_level  = 3.0 → Thêm header X-Spam-Status: Yes  │
+│  tag2_level = 6.0 → Thêm [SPAM] vào Subject         │
+│  kill_level = 6.9 → CHẶN email, không giao          │
+│                                                      │
+│  Hits: 8.5 > kill_level: 6.9 → BỊ CHẶN ✅           │
+│  Hits: -1.9 < tag_level: 3.0 → Sạch ✅              │
+└──────────────────────────────────────────────────────┘
+ 
+→ Hành động: Mail bị chuyển vào Junk/Spam folder hoặc bị xóa
+→ Kiểm tra trong Admin Console: Monitor → Mail Queue
+```
+ 
+---
+ 
+### Kịch bản 4: Mail bị deferred — gửi tạm thời thất bại
+ 
+```
+Jun 15 10:45:01 mail postfix/smtp[1260]: B2C3D4E5F6A1: to=<user@external.com>, relay=none, delay=30, delays=0.1/0/30/0, dsn=4.4.1, status=deferred (connect to external.com[93.184.216.34]:25: Connection timed out)
+```
+ 
+**Phân tích:**
+ 
+```
+status=deferred → Gửi thất bại TẠM THỜI (sẽ retry sau)
+                  (khác với "bounced" = thất bại vĩnh viễn)
+relay=none      → Không connect được đến server đích
+Connection timed out → Server đích không phản hồi port 25
+dsn=4.4.1       → "Temporary failure in name resolution or connection"
+ 
+→ Nguyên nhân thường gặp:
+   - Server đích đang down
+   - Port 25 bị chặn bởi firewall
+   - DNS không resolve được domain đích
+ 
+→ Postfix sẽ tự retry theo schedule:
+   5 phút → 10 phút → 20 phút → 40 phút → ...
+   Sau 5 ngày không thành công → bounce
+```
+ 
+---
+ 
 ## 12.6 Lệnh tra cứu log hữu ích
-
+ 
+> 💻 **Thực hiện trên: VM2 – 192.168.136.131**
+ 
 ```bash
-# Thực hiện trên: VM2 – 192.168.136.131
-su - zimbra
-
-# Tìm tất cả log liên quan đến 1 email bằng Queue ID
-grep "A1B2C3D4E5F6" /opt/zimbra/log/mail.log
-
-# Tìm log theo địa chỉ email
-grep "iamhieu@mail.lab.local" /opt/zimbra/log/mail.log | tail -20
-
-# Tìm email bị reject trong 1 giờ gần nhất
-grep "reject" /opt/zimbra/log/mail.log | tail -50
-
-# Đếm số email được gửi trong ngày
-grep "status=sent" /opt/zimbra/log/mail.log | wc -l
-
-# Xem mail queue đang kẹt
-postqueue -p
-
-# Xóa toàn bộ mail queue (cẩn thận!)
-postsuper -d ALL
+# ── Tra cứu theo Queue ID ────────────────────────────────────
+# Trace toàn bộ hành trình của 1 email cụ thể
+grep "A1B2C3D4E5F6" /var/log/zimbra.log
 ```
+<img width="932" height="203" alt="image" src="https://github.com/user-attachments/assets/4e19e9f3-d2d3-418b-8738-a2ad56ce9602" />
+```
+# ── Tra cứu theo địa chỉ email ──────────────────────────────
+# Xem tất cả log liên quan đến 1 địa chỉ email
+grep "iamhieu@mail.lab.local" /var/log/zimbra.log | tail -30
+```
+<img width="925" height="350" alt="image" src="https://github.com/user-attachments/assets/1efd1eae-e8de-470d-9235-f8a44de6cb73" />
+```
+# ── Tìm email bị lỗi ────────────────────────────────────────
+# Tìm email bị reject
+grep "reject" /var/log/zimbra.log | tail -50
+```
+<img width="924" height="49" alt="image" src="https://github.com/user-attachments/assets/71b13bd9-8719-4a2a-8985-7f325cbac486" />
+```
+# Tìm email bị deferred (gửi tạm thời thất bại)
+grep "status=deferred" /var/log/zimbra.log | tail -20
+```
+<img width="938" height="355" alt="image" src="https://github.com/user-attachments/assets/f9895ae5-76f5-446d-bc0e-db498158f189" />
+```
+# Tìm email bị bounced (gửi thất bại vĩnh viễn)
+grep "status=bounced" /var/log/zimbra.log | tail -20
+ ```
+<img width="929" height="340" alt="image" src="https://github.com/user-attachments/assets/bb0dca0f-ed91-47fc-8bbc-0abb1da6e79f" />
+ ```
+# Tìm email bị spam filter chặn
+grep "Blocked SPAM" /var/log/zimbra.log | tail -20
+  ```
 
+ ```
+# ── Thống kê ────────────────────────────────────────────────
+# Đếm số email gửi thành công trong ngày
+grep "status=sent" /var/log/zimbra.log | wc -l
+ ```
+<img width="370" height="36" alt="image" src="https://github.com/user-attachments/assets/b76da21f-6d1c-4c61-a1fd-8a6ef4093f82" />
+
+ ``` 
+# Đếm số email bị reject trong ngày
+grep "reject" /var/log/zimbra.log | wc -l
+ 
+# Xem 100 dòng log mới nhất của amavis
+grep "amavis" /var/log/zimbra.log | tail -100
+```
+<img width="938" height="212" alt="image" src="https://github.com/user-attachments/assets/28fc0ce2-efe4-442e-8630-00aa24233f11" />
+```
+# ── Lọc theo khoảng thời gian ───────────────────────────────
+# Xem log từ 10:00 đến 11:00
+grep "Jun 15 10:" /var/log/zimbra.log
+ 
+# ── Mail queue ──────────────────────────────────────────────
+# Xem mail đang kẹt trong queue
+su - zimbra -c "postqueue -p"
+ 
+# Xem chi tiết 1 mail trong queue
+su - zimbra -c "postcat -q A1B2C3D4E5F6"
+ 
+# Flush queue — thử gửi lại tất cả mail đang kẹt
+su - zimbra -c "postqueue -f"
+ 
+# Xóa 1 mail cụ thể khỏi queue
+su - zimbra -c "postsuper -d A1B2C3D4E5F6"
+ 
+# Xóa toàn bộ queue (⚠️ cẩn thận — không thể hoàn tác)
+su - zimbra -c "postsuper -d ALL"
+```
+ 
+---
+ 
 ## 12.7 Xem log qua Admin Console GUI
-
+ 
+> 🖥️ **Thực hiện trên: VM1 – trình duyệt → `https://192.168.136.131:7071`**
+ 
 ```
 Admin Console
 → Monitor (menu trái)
 → Mail Queue
 → Thấy danh sách email đang chờ xử lý
-→ Click vào từng email để xem chi tiết lý do kẹt
+→ Click vào từng email để xem:
+   - Người gửi / người nhận
+   - Lý do kẹt
+   - Số lần đã retry
+→ Có thể Delete hoặc Flush từng mail từ GUI
 ```
-
-
+ 
+---
+ 
+## 12.8 Workflow xử lý khi khách hàng báo lỗi mail
+ 
+Khi nhận ticket "không gửi/nhận được mail", thực hiện theo thứ tự sau:
+ 
+```
+Bước 1: Hỏi khách hàng
+  └── Lỗi từ lúc nào? Gửi hay nhận? Địa chỉ email cụ thể?
+ 
+Bước 2: Kiểm tra service còn chạy không
+  └── su - zimbra -c "zmcontrol status" | grep -E "mta|mailbox|amavis"
+ 
+Bước 3: Xem log theo địa chỉ email
+  └── grep "iamhieu@mail.lab.local" /var/log/zimbra.log | tail -50
+ 
+Bước 4: Tìm Queue ID từ log → trace toàn bộ hành trình
+  └── grep "QUEUE_ID" /var/log/zimbra.log
+ 
+Bước 5: Đọc dòng cuối cùng liên quan
+  └── status=sent ✅    → Mail đã giao, kiểm tra folder Spam của người nhận
+  └── status=deferred   → Đang retry, chờ hoặc flush queue
+  └── status=bounced    → Thất bại vĩnh viễn, xem lý do
+  └── Blocked SPAM      → Amavis chặn, kiểm tra điểm Hits
+  └── Relay denied      → Cấu hình firewall/relay
+ 
+Bước 6: Xử lý theo nguyên nhân → thông báo khách hàng
+```
+ 
 ---
 
 # CHƯƠNG 13. THAY ĐỔI LOGO ZIMBRA
-
+ 
+> 💻 **Toàn bộ chương này thực hiện trên: VM2 – 192.168.136.131**
+ 
 ## 13.1 Mục tiêu
-
-Thay thế logo mặc định của Zimbra bằng logo của công ty.
-
+ 
+Thay thế logo mặc định của Zimbra bằng logo của công ty trên trang đăng nhập và giao diện webmail.
+ 
+---
+ 
 ## 13.2 Lý thuyết
-
-Zimbra không hỗ trợ thay logo qua GUI Admin Console. Phải thay file trực tiếp trên server và clear cache.
-
-## 13.3 Thực hiện qua CLI
-
->  **Thực hiện trên: VM2 – 192.168.136.131**
-
-```bash
-# Tìm vị trí file logo
-find /opt/zimbra -name "*.gif" -o -name "*.png" | grep -i logo | head -20
-
-# Logo chính của webmail nằm tại:
-ls /opt/zimbra/jetty/webapps/zimbra/img/
-# Hoặc
-ls /opt/zimbra/web/img/
-
-# File logo thường dùng:
-# LoginBanner.png — Logo trang đăng nhập
-# AppBanner.png   — Logo trong giao diện webmail
+ 
+Zimbra 10.1. **không hỗ trợ thay logo qua GUI Admin Console**.  
+Phải thay file trực tiếp trên server theo 2 phương pháp:
+ 
+| Phương pháp | Ưu điểm | Nhược điểm |
+|------------|---------|-----------|
+| **Copy file đè trực tiếp** | Nhanh, đơn giản | Bị mất sau khi upgrade Zimbra |
+| **zmprov (cách chính thức)** | Bền vững, không bị upgrade xóa | Cần URL public hoặc path nội bộ hợp lệ |
+ 
+---
+ 
+## 13.3 Xác định đúng file logo trong Zimbra 10.1.x
+ 
+Từ ảnh thực tế, thư mục img của Zimbra 10.1.x có cấu trúc:
+ 
 ```
-
-```bash
-# Backup logo gốc trước khi thay
-cp /opt/zimbra/jetty/webapps/zimbra/img/logo.png \
-   /opt/zimbra/jetty/webapps/zimbra/img/logo.png.bak
-
-# Upload logo mới (từ VM1 sang VM2)
-# Trên VM1:
-scp /path/to/your-logo.png root@192.168.136.131:/tmp/company-logo.png
-
-# Trên VM2 — copy vào đúng vị trí
-cp /tmp/company-logo.png /opt/zimbra/jetty/webapps/zimbra/img/logo.png
-chown zimbra:zimbra /opt/zimbra/jetty/webapps/zimbra/img/logo.png
+/opt/zimbra/jetty/webapps/zimbra/img/
 ```
-
+ 
+Trong Zimbra 10.1.x, logo được quản lý qua **skin**. Vị trí file logo nằm tại:
+ 
 ```bash
-# Dùng zmprov để thay logo (cách chính thức)
+
+# Tìm đúng các file logo đang dùng
+find /opt/zimbra/jetty/webapps/zimbra -name "*.png" | grep -iE "logo|banner|brand" 2>/dev/null
+ 
+```
+ 
+**Các file logo quan trọng trong Zimbra 10.1.x:**
+ 
+```bash
+# Tìm chính xác tất cả file logo
+find /opt/zimbra/jetty/webapps/zimbra/skins -name "*.png" 2>/dev/null | grep -iE "logo|LoginBanner|AppBanner"
+```
+ <img width="706" height="167" alt="image" src="https://github.com/user-attachments/assets/82e9c4ba-4128-4e2f-82b2-f46fb3c2b099" />
+
+File logo thường nằm tại các đường dẫn sau:
+ 
+```
+/opt/zimbra/jetty/webapps/zimbra/skins/_base/logos/ZimbraInside/LoginBanner.png
+→ Logo hiển thị trên trang đăng nhập
+ 
+/opt/zimbra/jetty/webapps/zimbra/skins/_base/logos/AppBanner.png
+→ Logo hiển thị trong giao diện webmail (sau khi đăng nhập)
+```
+ 
+```bash
+# Confirm đường dẫn thực tế trên server của bạn
+find /opt/zimbra -name "LoginBanner.png" 2>/dev/null
+find /opt/zimbra -name "AppBanner.png" 2>/dev/null
+```
+ 
+---
+ 
+## 13.4 Thực hiện thay logo
+ 
+### Bước 1 — Chuẩn bị file logo
+ 
+Logo cần đáp ứng yêu cầu kỹ thuật:
+ 
+| Thông số | Yêu cầu |
+|---------|---------|
+| Định dạng | PNG (khuyến nghị), GIF, JPG |
+| Kích thước LoginBanner | ~120 x 30 pixels (trang đăng nhập) |
+| Kích thước AppBanner | ~200 x 38 pixels (giao diện webmail) |
+| Nền | Trong suốt (transparent) nếu dùng PNG |
+ 
+### Bước 2 — Upload logo lên VM2
+ 
+```bash
+
+# Ví dụ nếu file logo ở Desktop của VM1:
+scp ~/Desktop/logo.png iamhieu@192.168.136.131:/tmp/logo-moi.png
+```
+ <img width="664" height="197" alt="image" src="https://github.com/user-attachments/assets/c979c321-c8eb-4914-9e1c-be0d54f11484" />
+
+### Bước 3 — Backup file logo gốc
+ 
+```bash
+LOGIN_BANNER=$(find /opt/zimbra -name "LoginBanner.png" 2>/dev/null | head -1)
+APP_BANNER=$(find /opt/zimbra -name "AppBanner.png" 2>/dev/null | head -1)
+ 
+echo "LoginBanner: $LOGIN_BANNER"
+echo "AppBanner:   $APP_BANNER"
+```
+<img width="558" height="103" alt="image" src="https://github.com/user-attachments/assets/f9b117c3-340d-4592-b815-1cf093bdeb9c" />
+
+```
+# Backup — LUÔN backup trước khi thay
+cp "$LOGIN_BANNER" "${LOGIN_BANNER}.bak"
+cp "$APP_BANNER" "${APP_BANNER}.bak"
+ 
+# Verify backup tồn tại
+ls -lh "${LOGIN_BANNER}.bak"
+ls -lh "${APP_BANNER}.bak"
+```
+ 
+### Bước 4 — Copy logo mới vào đúng vị trí
+ 
+```bash
+# Thay LoginBanner (trang đăng nhập)
+sudo cp /tmp/logo-moi.png "$LOGIN_BANNER"
+ 
+# Thay AppBanner (giao diện webmail)
+sudo cp /tmp/logo-moi.png "$APP_BANNER"
+ 
+# Quan trọng: đặt đúng owner cho Zimbra
+sudo chown zimbra:zimbra "$LOGIN_BANNER"
+sudo chown zimbra:zimbra "$APP_BANNER"
+ 
+# Đặt quyền đúng
+sudo chmod 644 "$LOGIN_BANNER"
+sudo chmod 644 "$APP_BANNER"
+ 
+# Verify
+ls -lh "$LOGIN_BANNER"
+ls -lh "$APP_BANNER"
+```
+<img width="728" height="53" alt="image" src="https://github.com/user-attachments/assets/92b646f0-10f9-45f7-a62f-a831593a12e1" />
+
+### Bước 5 — Cách thay theo từng skin cụ thể (nếu bước 4 không hiệu quả)
+ 
+Zimbra 10.1.x sử dụng skin system. Thay logo trong đúng skin đang dùng:
+ 
+```bash
+# Xem skin đang được cấu hình
 su - zimbra
-
-# Thay logo trang đăng nhập
-zmprov md lab.local zimbraSkinLogoURL /logos/company-logo.png
-
-# Thay logo trong giao diện (AppBanner)
-zmprov md lab.local zimbraSkinLogoAppBanner /logos/app-banner.png
-
-# Clear cache để áp dụng
+zmprov gd lab.local zimbraSkinName
+ 
+# Thường là "serenity" trong Zimbra 10.x
+# Tìm logo trong skin đó
+ls /opt/zimbra/jetty/webapps/zimbra/skins/serenity/logos/ 2>/dev/null
+ 
+# Thay logo trong skin serenity
+cp /tmp/company-logo.png \
+   /opt/zimbra/jetty/webapps/zimbra/skins/serenity/logos/LoginBanner.png
+ 
+cp /tmp/company-logo.png \
+   /opt/zimbra/jetty/webapps/zimbra/skins/serenity/logos/AppBanner.png
+ 
+# Set owner
+chown -R zimbra:zimbra /opt/zimbra/jetty/webapps/zimbra/skins/serenity/logos/
+```
+ 
+### Bước 6 — Clear cache và restart
+ 
+```bash
+sudo su - zimbra
+ 
+# Clear browser cache phía server
+zmprov flushCache skin
+ 
+# Restart mailbox để apply thay đổi
+zmmailboxdctl restart
+ 
+# Đợi ~60 giây cho Zimbra khởi động lại xong
+# Kiểm tra trạng thái
+zmcontrol status | grep mailbox
+```
+ 
+---
+ 
+## 13.5 Cách thay logo qua zmprov (bền vững hơn)
+ 
+Phương pháp này dùng khi bạn có web server riêng host file logo:
+ 
+```bash
+su - zimbra
+ 
+# Cách 1: Trỏ đến URL ngoài
+zmprov md lab.local zimbraSkinLogoURL "http://192.168.136.131/logo/company.png"
+ 
+# Cách 2: Dùng đường dẫn tương đối trong Zimbra
+zmprov md lab.local zimbraSkinLogoURL "/img/company-logo.png"
+ 
+# Thay AppBanner (banner trong app sau khi đăng nhập)
+zmprov md lab.local zimbraSkinLogoAppBanner "/img/company-logo.png"
+ 
+# Clear cache và restart
+zmprov flushCache skin
 zmmailboxdctl restart
 ```
-
-## 13.4 Kiểm tra kết quả
-
+ 
+---
+ 
+## 13.6 Kiểm tra kết quả
+ 
+```bash
+# Kiểm tra file logo mới đã đúng chưa
+file "$LOGIN_BANNER"
+# Output mong đợi: PNG image data, 120 x 30, ...
+ 
+# Kiểm tra owner đúng chưa
+ls -lh "$LOGIN_BANNER"
+# Output mong đợi: -rw-r--r-- 1 zimbra zimbra ...
 ```
-1. Trên VM1, mở trình duyệt
-2. Truy cập https://192.168.136.131
+ 
+Trên trình duyệt VM1:
+ 
+```
+1. Truy cập: https://192.168.136.131
+2. Nhấn Ctrl+Shift+R (hard refresh — xóa cache trình duyệt)
 3. Trang đăng nhập phải hiển thị logo mới
-4. Nếu còn thấy logo cũ: Nhấn Ctrl+Shift+R (Hard refresh)
+4. Đăng nhập vào webmail → logo trong header cũng phải thay đổi
+ 
+Nếu vẫn thấy logo cũ:
+→ Thử mở tab ẩn danh (Ctrl+Shift+N) để tránh cache
+→ Hoặc thử trình duyệt khác
 ```
-
-## ✅ Checklist Chương 13
-
-- [ ] Backup logo gốc trước khi thay
-- [ ] Copy logo mới vào đúng đường dẫn
-- [ ] Clear cache và verify logo mới xuất hiện
+ 
 
 ---
-
+ 
 # CHƯƠNG 14. THAY ĐỔI TITLE WEB ZIMBRA
-
+ 
 ## 14.1 Mục tiêu
-
-Đổi tiêu đề tab trình duyệt từ "Zimbra Collaboration Suite" thành tên riêng của công ty.
-
-## 14.2 Thực hiện
-
->  **Thực hiện trên: VM2 – 192.168.136.131**
-
+ 
+Đổi tiêu đề tab trình duyệt và các banner text từ "Zimbra" thành tên riêng của công ty/lab.
+ 
+---
+ 
+## 14.2 Lý thuyết
+ 
+Trong Zimbra 10.1.x, có **3 vị trí text** có thể thay đổi:
+ 
+```
+┌─────────────────────────────────────────────────────────┐
+│ Tab trình duyệt: [LAB MAIL SERVER]                      │  ← zimbraProductName
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  [LAB MAIL SERVER]  ← Login Banner text         │    │  ← zimbraSkinLogoLoginBanner
+│  │                                                 │    │
+│  │  Username: __________                           │    │
+│  │  Password: __________                           │    │
+│  │  [Sign In]                                      │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+ 
+Sau khi đăng nhập:
+┌─────────────────────────────────────────────────────────┐
+│ [LAB MAIL SERVER] ← App Banner text                     │  ← zimbraSkinLogoAppBanner
+│ ─────────────────────────────────────────────────────── │
+│  Inbox | Sent | ...                                     │
+└─────────────────────────────────────────────────────────┘
+```
+ 
+---
+ 
+## 14.3 Thực hiện
+ 
+### Bước 1 — Xem giá trị hiện tại
+ 
+```bash
+sudo su - zimbra
+ 
+# Xem tất cả cấu hình title/banner hiện tại
+zmprov gd lab.local | grep -iE "zimbraSkinLogo|zimbraProductName"
+ 
+# Hoặc xem từng giá trị riêng lẻ
+zmprov gd lab.local zimbraSkinLogoLoginBanner
+zmprov gd lab.local zimbraSkinLogoAppBanner
+zmprov gcf zimbraProductName
+```
+ 
+**Output mẫu (giá trị mặc định Zimbra 10.1.x):**
+```
+zimbraSkinLogoLoginBanner: Zimbra
+zimbraSkinLogoAppBanner: Zimbra
+zimbraProductName: Zimbra Collaboration
+```
+ 
+### Bước 2 — Thay đổi title tab trình duyệt
+ 
 ```bash
 su - zimbra
-
-# Xem title hiện tại
-zmprov gd lab.local | grep zimbraSkinLogoLoginBanner
-
-# Đổi title trang đăng nhập
-zmprov md lab.local zimbraSkinLogoLoginBanner "LAB MAIL SERVER"
-
-# Đổi title trong App (sau khi đăng nhập)
-zmprov md lab.local zimbraSkinLogoAppBanner "LAB MAIL SERVER"
-
-# Đổi title tab trình duyệt (product name)
+ 
+# Đổi tên hiển thị trên tab trình duyệt (global — áp dụng toàn server)
 zmprov mcf zimbraProductName "LAB MAIL SERVER"
-
-# Restart để áp dụng
+ 
+# Verify
+zmprov gcf zimbraProductName
+# Output: zimbraProductName: LAB MAIL SERVER
+```
+ 
+### Bước 3 — Thay đổi Login Banner (trang đăng nhập)
+ 
+```bash
+# Đổi text banner trên trang đăng nhập (per-domain)
+zmprov md lab.local zimbraSkinLogoLoginBanner "LAB MAIL SERVER"
+ 
+# Verify
+zmprov gd lab.local zimbraSkinLogoLoginBanner
+# Output: zimbraSkinLogoLoginBanner: LAB MAIL SERVER
+```
+ 
+### Bước 4 — Thay đổi App Banner (trong giao diện webmail)
+ 
+```bash
+# Đổi text banner trong giao diện sau khi đăng nhập (per-domain)
+zmprov md lab.local zimbraSkinLogoAppBanner "LAB MAIL SERVER"
+ 
+# Verify
+zmprov gd lab.local zimbraSkinLogoAppBanner
+# Output: zimbraSkinLogoAppBanner: LAB MAIL SERVER
+```
+ 
+### Bước 5 — Clear cache và restart
+ 
+```bash
+# Vẫn đang ở user zimbra
+ 
+# Clear skin cache
+zmprov flushCache skin
+ 
+# Clear all cache (triệt để hơn)
+zmprov flushCache -a
+ 
+# Restart mailbox service để apply
+zmmailboxdctl restart
+ 
+# Chờ ~60 giây, kiểm tra đã start lại xong
+zmcontrol status | grep mailbox
+```
+ 
+**Output mong đợi:**
+```
+        mailbox                 Running
+```
+ 
+---
+ 
+## 14.4 Thay đổi các text khác (nâng cao)
+ 
+Zimbra 10.1.x còn có một số text có thể tùy chỉnh thêm:
+ 
+```bash
+su - zimbra
+ 
+# Đổi tên hiển thị trong email headers (From name của system mail)
+zmprov mcf zimbraDefaultDomainName "lab.local"
+ 
+# Đổi địa chỉ email gửi thông báo hệ thống
+zmprov mcf zimbraNewMailNotificationFrom "no-reply@lab.local"
+ 
+# Đổi tên hiển thị của sender thông báo hệ thống
+zmprov mcf zimbraNewMailNotificationSender "LAB MAIL SERVER"
+ 
+# Sau khi thay đổi: clear cache
+zmprov flushCache -a
 zmmailboxdctl restart
 ```
-
-## 14.3 Kiểm tra
-
-```
-1. Truy cập https://192.168.136.131
-2. Tab trình duyệt phải hiển thị: "LAB MAIL SERVER"
-3. Trang đăng nhập: header phải hiển thị "LAB MAIL SERVER"
-```
-
-## ✅ Checklist Chương 14
-
-- [ ] Title tab đã đổi thành "LAB MAIL SERVER"
-- [ ] Title trang đăng nhập đã đổi
-- [ ] Verify trên trình duyệt sau khi hard refresh
-
+ 
 ---
-
+ 
+## 14.5 Kiểm tra kết quả
+ 
+```bash
+# Kiểm tra nhanh tất cả giá trị đã thay đổi
+su - zimbra
+echo "=== Product Name ==="
+zmprov gcf zimbraProductName
+ 
+echo "=== Login Banner ==="
+zmprov gd lab.local zimbraSkinLogoLoginBanner
+ 
+echo "=== App Banner ==="
+zmprov gd lab.local zimbraSkinLogoAppBanner
+```
+ 
+**Output mong đợi:**
+```
+=== Product Name ===
+zimbraProductName: LAB MAIL SERVER
+ 
+=== Login Banner ===
+zimbraSkinLogoLoginBanner: LAB MAIL SERVER
+ 
+=== App Banner ===
+zimbraSkinLogoAppBanner: LAB MAIL SERVER
+```
+ 
+Trên trình duyệt VM1:
+ 
+```
+1. Mở tab ẩn danh: Ctrl+Shift+N
+2. Truy cập: https://192.168.136.131
+3. Kiểm tra:
+   ✅ Tab trình duyệt hiển thị: "LAB MAIL SERVER"
+   ✅ Header trang đăng nhập hiển thị: "LAB MAIL SERVER"
+4. Đăng nhập vào webmail
+5. Kiểm tra header top-left:
+   ✅ Phải hiển thị: "LAB MAIL SERVER"
+```
+ 
+> 💡 **Bắt buộc dùng tab ẩn danh** để test — trình duyệt thường đang cache title cũ, tab ẩn danh đảm bảo lấy fresh từ server.
+ 
+---
+ 
+## 14.6 Troubleshooting
+ 
+| Triệu chứng | Nguyên nhân | Cách fix |
+|------------|-------------|---------|
+| Title vẫn là "Zimbra" | Browser cache | Mở tab ẩn danh thay vì Ctrl+Shift+R |
+| Lệnh `zmprov md` báo lỗi | Sai domain name | Kiểm tra: `zmprov gad` để xem tên domain đúng |
+| `zmmailboxdctl restart` timeout | Zimbra đang bận | Chờ 2-3 phút rồi thử lại |
+| Title đổi nhưng logo vẫn cũ | Chỉ flush text cache | Làm thêm Chương 13 để đổi logo |
+| Thay đổi mất sau upgrade | Dùng `zmprov` đúng cách | Đảm bảo dùng `zmprov mcf/md` không phải sửa file tay |
+ 
+---
 # CHƯƠNG 15. QUẢN LÝ QUOTA MAILBOX
 
 ## 15.1 Mục tiêu
