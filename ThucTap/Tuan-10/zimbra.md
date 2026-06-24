@@ -2444,10 +2444,16 @@ su - zimbra
 
 # Xem thông tin cert hiện tại
 zmcertmgr viewdeployedcrt
+```
+<img width="401" height="301" alt="image" src="https://github.com/user-attachments/assets/fdbd23c7-7cad-40dc-b643-1df45e9bb4d1" />
 
+```
 # Kiểm tra ngày hết hạn
-openssl x509 -in /opt/zimbra/ssl/zimbra/public/zimbra.crt -noout -dates
+ openssl x509 -in /opt/zimbra/ssl/zimbra/server/server.crt -noout -dates
+```
+<img width="588" height="44" alt="image" src="https://github.com/user-attachments/assets/b2d51cc4-4b37-40de-86d4-682eabe10b6f" />
 
+```
 # Tạo và deploy self-signed cert mới
 zmcertmgr createca -new
 zmcertmgr createcrt -new -days 3650
@@ -2456,137 +2462,6 @@ zmcertmgr deployca
 zmmailboxdctl restart
 ```
 
-## ✅ Checklist Chương 19
-
-- [ ] Biết quy trình kiểm tra khi không gửi được mail
-- [ ] Biết quy trình kiểm tra khi không nhận được mail
-- [ ] Xử lý được service stopped
-- [ ] Biết xem và xóa mail queue
-- [ ] Biết renew SSL certificate
-
 ---
 
-# CHƯƠNG 20. TỔNG KẾT
 
-## 20.1 Tổng kết kiến thức đã học
-
-```
-┌─────────────────────────────────────────────────────────┐
-│              TOÀN BỘ KIẾN THỨC ZIMBRA LAB               │
-│                                                          │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │               MAIL FLOW                         │    │
-│  │                                                 │    │
-│  │  Internet → Postfix(25) → Amavis → Mailbox      │    │
-│  │  User → WebClient → Proxy → Mailbox             │    │
-│  └─────────────────────────────────────────────────┘    │
-│                                                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐   │
-│  │     USER     │  │   SECURITY   │  │   BACKUP    │   │
-│  │ MANAGEMENT   │  │              │  │  & RESTORE  │   │
-│  │              │  │ • Password   │  │             │   │
-│  │ • Accounts   │  │   Policy     │  │ • zmbackup  │   │
-│  │ • Groups     │  │ • Quota      │  │ • zmrestore │   │
-│  │ • Aliases    │  │ • Spam Filter│  │ • TGZ       │   │
-│  │ • Signature  │  │ • Antivirus  │  │ • rsync     │   │
-│  │ • Forward    │  │              │  │             │   │
-│  └──────────────┘  └──────────────┘  └─────────────┘   │
-│                                                          │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │           TROUBLESHOOTING                       │    │
-│  │                                                 │    │
-│  │  1. Check zmcontrol status                      │    │
-│  │  2. Check mail.log                              │    │
-│  │  3. Check postqueue -p                          │    │
-│  │  4. Check DNS (hostname -f)                     │    │
-│  │  5. Check port (ss -tlnp)                       │    │
-│  └─────────────────────────────────────────────────┘    │
-└─────────────────────────────────────────────────────────┘
-```
-
-## 20.2 Bảng lệnh CLI cần nhớ
-
-| Lệnh | Chức năng |
-|------|-----------|
-| `zmcontrol status` | Xem trạng thái tất cả service |
-| `zmcontrol start/stop/restart` | Điều khiển service |
-| `zmprov gaa lab.local` | Liệt kê tất cả account |
-| `zmprov ga user@domain` | Xem thông tin account |
-| `zmprov ma user@domain attr value` | Sửa thuộc tính account |
-| `zmprov sp user@domain 'password'` | Đổi mật khẩu |
-| `zmmailbox -z -m user@domain` | Thao tác mailbox |
-| `zmbackup -f -a all -t /path` | Backup toàn bộ |
-| `zmrestore -f -a all -t /path` | Restore toàn bộ |
-| `postqueue -p` | Xem mail queue |
-| `postqueue -f` | Flush mail queue |
-| `tail -f /opt/zimbra/log/mail.log` | Xem log realtime |
-
-## 20.3 Checklist Nghiệm thu LAB
-
-### Mức Cơ bản (Bắt buộc PASS)
-
-- [ ] Cài đặt Zimbra thành công, `zmcontrol status` tất cả Running
-- [ ] Tạo được user01, user02
-- [ ] Gửi/nhận mail được giữa user01 và user02
-- [ ] Đăng nhập được WorldClient và Admin Console
-
-### Mức Trung bình
-
-- [ ] Cấu hình được Password Policy
-- [ ] Tạo được Signature, Distribution List, Alias
-- [ ] Thiết lập Forward email
-- [ ] Biết đọc mail.log và phân tích 1 email hoàn chỉnh
-
-### Mức Nâng cao
-
-- [ ] Backup và Restore thành công
-- [ ] Quản lý Quota cho từng user
-- [ ] Xử lý được mail queue bị kẹt
-- [ ] Troubleshoot được ít nhất 3 lỗi phổ biến
-- [ ] Thay đổi được Logo và Title Zimbra
-
-## 20.4 Lời khuyên từ Senior
-
-> 💡 **Skill quan trọng nhất không phải là cài Zimbra — mà là ĐỌC LOG.**
->
-> Khi gặp lỗi, 90% trường hợp log sẽ cho bạn biết chính xác vấn đề là gì. Hãy luyện tập đọc `/opt/zimbra/log/mail.log` mỗi ngày cho đến khi bạn đọc log nhanh như đọc báo.
-
-> 💡 **Luôn backup trước khi làm bất cứ điều gì.**
->
-> Trên Production, quy tắc số 1 là: Backup → Test trên Lab → Áp dụng Production. Không bao giờ test trực tiếp trên Production.
-
----
-
-## PHỤ LỤC — Quick Reference
-
-### Vị trí file quan trọng
-
-```
-/opt/zimbra/                    # Thư mục gốc Zimbra
-/opt/zimbra/log/mail.log        # Log MTA (Postfix)
-/opt/zimbra/log/mailbox.log     # Log Zimbra mailbox
-/opt/zimbra/store/              # Nơi lưu email vật lý
-/opt/zimbra/conf/localconfig.xml # Cấu hình local
-/opt/zimbra/ssl/zimbra/         # SSL certificates
-/etc/hosts                      # Quan trọng cho hostname resolution
-```
-
-### URL quan trọng
-
-| URL | Dùng để |
-|-----|---------|
-| `https://192.168.136.131:7071` | Admin Console |
-| `https://192.168.136.131` | WorldClient (Webmail) |
-| `http://192.168.136.131:7780` | Webmail HTTP |
-
-### Tài liệu tham khảo
-
-- Zimbra Wiki: https://wiki.zimbra.com
-- Zimbra Forums: https://forums.zimbra.org
-- Zimbra Source: https://github.com/zimbra
-
----
-
-*Tài liệu được biên soạn bởi Senior SysAdmin — Nhân Hòa*  
-*Phiên bản: 1.0 | Ngày: 2026-06-15*  
-*Dành cho: Fresher / System Admin Intern*
