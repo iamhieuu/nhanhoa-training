@@ -1,20 +1,5 @@
 # Báo cáo thực tập ngày 50 - Zabbix
 
----
-
-## Lời mở đầu
-
-Tài liệu này được xây dựng theo phong cách **Wiki kỹ thuật kết hợp tài liệu đào tạo doanh nghiệp**. Mỗi chương được thiết kế để người học không chỉ hiểu lý thuyết mà còn nắm được **tư duy vận hành** của một kỹ sư giám sát hệ thống thực thụ.
-
-**Quy ước ký hiệu trong tài liệu:**
-
-| Ký hiệu | Ý nghĩa |
-|---------|---------|
-| 📌 **Lưu ý** | Thông tin cần ghi nhớ |
-| ⚠️ **Cảnh báo** | Rủi ro tiềm ẩn, cần thận trọng |
-| ✅ **Best Practice** | Thực tiễn tốt nhất trong doanh nghiệp |
-| 💡 **Thực tế** | Ví dụ hoặc tình huống thực tế |
-| 🔧 **Kỹ thuật** | Chi tiết kỹ thuật chuyên sâu |
 
 ---
 
@@ -22,39 +7,16 @@ Tài liệu này được xây dựng theo phong cách **Wiki kỹ thuật kết
 
 ---
 
-## 1.1 Mục tiêu học tập
 
-Sau khi hoàn thành chương này, người học có khả năng:
+## 1.1 Monitoring là gì và tại sao cần thiết?
 
-- [ ] Giải thích Zabbix là gì và lý do nó được lựa chọn trong môi trường doanh nghiệp.
-- [ ] Trình bày được lịch sử phát triển và các mốc phiên bản quan trọng của Zabbix.
-- [ ] Liệt kê và giải thích các tính năng nổi bật của Zabbix.
-- [ ] Định nghĩa chính xác các thuật ngữ cốt lõi: Host, Item, Trigger, Action, Template, Dashboard, Media.
-- [ ] So sánh Zabbix với các giải pháp giám sát phổ biến khác (Nagios, Prometheus, Grafana).
-- [ ] Xác định các trường hợp sử dụng Zabbix phù hợp trong môi trường doanh nghiệp thực tế.
+### 1.1.1 Định nghĩa Monitoring 
 
----
-
-## 1.2 Kiến thức nền tảng
-
-Trước khi học chương này, người học cần có:
-
-- Hiểu biết cơ bản về mạng máy tính (TCP/IP, DNS, SNMP).
-- Làm quen với Linux command line (Ubuntu/CentOS).
-- Biết khái niệm cơ bản về database (SQL).
-- Hiểu mô hình Client-Server.
-
----
-
-## 1.3 Monitoring là gì và tại sao cần thiết?
-
-### 1.3.1 Định nghĩa Monitoring (Giám sát hệ thống)
-
-**Monitoring** (giám sát hệ thống) là quá trình **liên tục thu thập, phân tích và hiển thị dữ liệu** về trạng thái hoạt động của hạ tầng IT — bao gồm server, mạng, ứng dụng, cơ sở dữ liệu và dịch vụ — với mục tiêu phát hiện sự cố, dự đoán vấn đề tiềm ẩn và đảm bảo hệ thống vận hành ổn định.
+**Monitoring** là quá trình **liên tục thu thập, phân tích và hiển thị dữ liệu** về trạng thái hoạt động của hạ tầng IT — bao gồm server, mạng, ứng dụng, cơ sở dữ liệu và dịch vụ — với mục tiêu phát hiện sự cố, dự đoán vấn đề tiềm ẩn và đảm bảo hệ thống vận hành ổn định.
 
 Nếu không có monitoring, đội IT chỉ biết hệ thống bị sự cố **khi người dùng phản ánh** — điều này là quá muộn trong môi trường doanh nghiệp.
 
-### 1.3.2 Ba cấp độ giám sát trong doanh nghiệp
+### 1.1.2 Ba cấp độ giám sát trong doanh nghiệp
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -70,7 +32,7 @@ Nếu không có monitoring, đội IT chỉ biết hệ thống bị sự cố 
          ▲ Zabbix hoạt động hiệu quả ở cả 3 cấp độ
 ```
 
-### 1.3.3 Các loại Monitoring
+### 1.1.3 Các loại Monitoring
 
 | Loại | Mô tả | Ví dụ |
 |------|-------|-------|
@@ -84,11 +46,11 @@ Nếu không có monitoring, đội IT chỉ biết hệ thống bị sự cố 
 
 ---
 
-## 1.4 Zabbix là gì?
+## 1.2 Zabbix là gì?
 
 ### 1.4.1 Định nghĩa
 
-**Zabbix** là nền tảng giám sát hệ thống mã nguồn mở (open-source) cấp doanh nghiệp (**enterprise-grade**), được phát triển và duy trì bởi công ty **Zabbix SIA** (Latvia). Zabbix cung cấp khả năng giám sát toàn diện cho hạ tầng IT: server, mạng, ứng dụng, cloud và IoT — tất cả trong một nền tảng thống nhất duy nhất.
+**Zabbix** là nền tảng giám sát hệ thống mã nguồn mở (open-source) cấp doanh nghiệp (**enterprise-grade**), được phát triển và duy trì bởi công ty **Zabbix SIA**. Zabbix cung cấp khả năng giám sát toàn diện cho hạ tầng IT: server, mạng, ứng dụng, cloud và IoT — tất cả trong một nền tảng thống nhất duy nhất.
 
 **Đặc điểm then chốt:**
 - **100% Open Source** — Mã nguồn mở hoàn toàn, không có tính năng bị giới hạn bởi license.
@@ -604,7 +566,7 @@ Template Hierarchy ví dụ:
 - Top Hosts, SLA Report
 - URL widget (nhúng trang web bên ngoài)
 
-### 1.7.10 Map (Sơ đồ mạng)
+### 1.7.10 Map 
 
 **Map** là sơ đồ mạng tương tác trong Zabbix, cho phép:
 - Vẽ topology mạng với icon thiết bị thực tế.
@@ -645,7 +607,7 @@ Web Scenario: "Check Login Portal"
 ### 1.7.13 Proxy
 
 **Zabbix Proxy** là thành phần trung gian thu thập dữ liệu thay mặt Zabbix Server. Proxy giải quyết các vấn đề:
-- Giám sát **site từ xa** (remote datacenter, chi nhánh) qua WAN chậm.
+- Giám sát **site từ xa**  qua WAN chậm.
 - **Giảm tải** cho Zabbix Server bằng cách xử lý dữ liệu tại chỗ.
 - Giám sát môi trường **không có kết nối trực tiếp** đến Zabbix Server (DMZ, isolated network).
 
@@ -657,7 +619,7 @@ Web Scenario: "Check Login Portal"
 
 ### 1.8.1 Tình huống 1: Công ty fintech 500 nhân viên
 
-**Hạ tầng:** 80 server Linux (production), 20 server Windows (internal), 15 switch/router, 3 firewall, 2 database clusters.
+**Hạ tầng:** 80 server Linux , 20 server Windows (internal), 15 switch/router, 3 firewall, 2 database clusters.
 
 **Yêu cầu monitoring:**
 - Uptime 99.9% cho hệ thống thanh toán.
@@ -684,98 +646,10 @@ Web Scenario: "Check Login Portal"
 
 ---
 
-## 1.9 Best Practices — Chương 1
 
-✅ **Luôn dùng phiên bản Zabbix LTS** cho môi trường production. LTS được hỗ trợ bảo mật và bug fix trong 5 năm.
+## 2.1 Kiến trúc tổng quan
 
-✅ **Đặt tên Host có hệ thống** ngay từ đầu: `{env}-{role}-{location}-{number}`. Ví dụ: `prod-web-hcm-01`, `prod-db-hn-01`. Tên không nhất quán gây khó khăn về sau.
-
-✅ **Tổ chức Host Groups theo nhiều chiều** (môi trường VÀ loại): cả `/Linux Servers` và `/Production` — một host có thể thuộc nhiều groups.
-
-✅ **Dùng Template thay vì cấu hình thủ công từng host.** Mọi cấu hình monitoring nên được đóng gói trong template.
-
-✅ **Định nghĩa Macro ngay từ đầu** thay vì hardcode ngưỡng trong trigger. Điều này cho phép override ngưỡng cho từng host/template mà không cần sửa trigger.
-
-✅ **Tài liệu hóa mọi thứ:** Thêm description vào Items, Triggers, Actions để đồng nghiệp và bản thân sau này hiểu mục đích.
-
----
-
-## 1.10 Tổng kết Chương 1
-
-**Zabbix** là nền tảng giám sát hệ thống mã nguồn mở enterprise-grade, cung cấp giải pháp all-in-one cho hạ tầng IT hiện đại. Điểm mạnh cốt lõi của Zabbix:
-
-1. **Đa giao thức:** Agent, SNMP, IPMI, JMX, HTTP, SSH — giám sát mọi loại thiết bị.
-2. **LLD:** Tự động phát hiện và tạo monitoring items mà không cần cấu hình thủ công.
-3. **Template system:** Cấu hình một lần, áp dụng cho hàng nghìn host.
-4. **Trigger thông minh:** Biểu thức linh hoạt, hàm thống kê, dự đoán xu hướng.
-5. **Zero licensing cost:** Không giới hạn số host, không phí bản quyền.
-
-Các thuật ngữ cốt lõi cần nhớ: **Host → Item → Trigger → Event → Action → Notification**. Đây là chuỗi logic từ "đối tượng giám sát" đến "phản ứng với sự cố".
-
----
-
-## 1.11 Câu hỏi ôn tập
-
-**Câu hỏi lý thuyết:**
-
-1. Zabbix khác Nagios như thế nào về kiến trúc và phương thức thu thập dữ liệu?
-
-2. Giải thích tại sao Low-Level Discovery (LLD) là tính năng quan trọng trong môi trường doanh nghiệp lớn.
-
-3. Phân biệt **History** và **Trend** trong cấu hình Item. Tại sao cần có cả hai?
-
-4. Khi nào nên dùng ngưỡng `avg(5m) > 90` thay vì `last() > 90` trong Trigger? Giải thích lý do.
-
-5. Giải thích khái niệm **Macro** và cho ví dụ về lợi ích của việc dùng User Macro thay vì hardcode giá trị trong Trigger.
-
-6. Tại sao Zabbix Proxy quan trọng trong môi trường doanh nghiệp nhiều chi nhánh?
-
-7. Phân biệt **Event** và **Problem** trong Zabbix.
-
-**Câu hỏi tình huống:**
-
-8. Công ty bạn có 200 server Linux, 50 server Windows và 30 thiết bị mạng. Bạn sẽ tổ chức Host Groups như thế nào? Hãy đề xuất cấu trúc cụ thể.
-
-9. Trigger sau đây có vấn đề gì? Đề xuất cách cải thiện:
-   `{server:system.cpu.util.last()} > 90`
-
-10. Một server database quan trọng cần có ngưỡng CPU cảnh báo cao hơn (95%) so với ngưỡng mặc định trong template (80%). Bạn xử lý tình huống này trong Zabbix như thế nào mà không sửa Template?
-
----
-
----
-
-# CHƯƠNG 2: KIẾN TRÚC ZABBIX
-
----
-
-## 2.1 Mục tiêu học tập
-
-Sau khi hoàn thành chương này, người học có khả năng:
-
-- [ ] Vẽ và giải thích sơ đồ kiến trúc đầy đủ của hệ thống Zabbix.
-- [ ] Mô tả vai trò, chức năng và đặc điểm của từng thành phần: Server, Agent, Proxy, Web Frontend, Sender, Get, JS.
-- [ ] Giải thích luồng dữ liệu từ thiết bị được giám sát đến database và dashboard.
-- [ ] Phân biệt Active Mode và Passive Mode của Zabbix Agent.
-- [ ] Xác định khi nào cần dùng Zabbix Proxy và khi nào không.
-- [ ] Hiểu cơ chế hoạt động của Zabbix Database và vai trò của từng bảng dữ liệu.
-- [ ] Phân biệt Zabbix Agent và Zabbix Agent 2 — khi nào dùng cái nào.
-
----
-
-## 2.2 Kiến thức nền tảng
-
-Trước khi học chương này, người học cần:
-- Hoàn thành Chương 1 (hiểu các thuật ngữ cơ bản).
-- Biết mô hình Client-Server và khái niệm TCP/IP port.
-- Hiểu cơ bản về database (khái niệm table, row, query).
-- Biết khái niệm daemon/service trong Linux.
-
----
-
-## 2.3 Kiến trúc tổng quan
-
-### 2.3.1 Sơ đồ kiến trúc đầy đủ
+### 2.1.1 Sơ đồ kiến trúc đầy đủ
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
@@ -805,7 +679,7 @@ Trước khi học chương này, người học cần:
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
-### 2.3.2 Các thành phần trong hệ thống Zabbix
+### 2.1.2 Các thành phần trong hệ thống Zabbix
 
 | Thành phần | Vai trò chính | Bắt buộc? |
 |-----------|--------------|-----------|
@@ -820,9 +694,9 @@ Trước khi học chương này, người học cần:
 
 ---
 
-## 2.4 Zabbix Server
+## 2.2 Zabbix Server
 
-### 2.4.1 Định nghĩa và vai trò
+### 2.2.1 Định nghĩa và vai trò
 
 **Zabbix Server** là **trái tim và não bộ** của toàn bộ hệ thống Zabbix. Đây là tiến trình (daemon) trung tâm chịu trách nhiệm:
 
@@ -834,7 +708,7 @@ Trước khi học chương này, người học cần:
 6. **Lưu trữ dữ liệu** vào database.
 7. **Quản lý cấu hình** — đọc từ database, áp dụng.
 
-### 2.4.2 Kiến trúc nội bộ của Zabbix Server
+### 2.2.2 Kiến trúc nội bộ của Zabbix Server
 
 Zabbix Server là một **multi-process daemon** — khi khởi động, nó tạo ra nhiều **worker processes** (tiến trình con) chạy song song, mỗi loại đảm nhiệm một chức năng cụ thể:
 
@@ -881,7 +755,7 @@ Zabbix Server Process (zabbix_server)
 └── Self-monitoring         — Giám sát chính Zabbix Server
 ```
 
-### 2.4.3 Cấu hình quan trọng của Zabbix Server
+### 2.2.3 Cấu hình quan trọng của Zabbix Server
 
 File cấu hình: `/etc/zabbix/zabbix_server.conf`
 
@@ -905,7 +779,7 @@ File cấu hình: `/etc/zabbix/zabbix_server.conf`
 | `LogFile` | /var/log/zabbix/zabbix_server.log | File log |
 | `HANodeName` | | Tên node khi dùng HA mode |
 
-### 2.4.4 Cơ sở dữ liệu (Database)
+### 2.2.4 Cơ sở dữ liệu (Database)
 
 Zabbix Server **không tự lưu trữ dữ liệu** — mọi dữ liệu đều lưu trong database. Zabbix hỗ trợ:
 
@@ -952,9 +826,9 @@ Bảng SỰ KIỆN:
 
 ---
 
-## 2.5 Zabbix Agent
+## 2.3 Zabbix Agent
 
-### 2.5.1 Định nghĩa và vai trò
+### 2.3.1 Định nghĩa và vai trò
 
 **Zabbix Agent** là một daemon nhỏ được cài đặt **trên máy chủ cần giám sát**. Agent thu thập dữ liệu từ hệ thống cục bộ (CPU, RAM, Disk, Process, Log...) và gửi về Zabbix Server hoặc Proxy.
 
@@ -963,7 +837,7 @@ Bảng SỰ KIỆN:
 - Agent **bảo mật hơn**: không cần mở thêm port SNMP, có thể mã hóa TLS.
 - Agent **hiệu suất tốt hơn**: ít overhead hơn so với SNMP polling.
 
-### 2.5.2 Hai chế độ hoạt động: Passive vs Active
+### 2.3.2 Hai chế độ hoạt động: Passive vs Active
 
 Đây là khái niệm **cực kỳ quan trọng** và thường gây nhầm lẫn. Cần hiểu từ góc nhìn của **Agent** (không phải Server).
 
@@ -1027,7 +901,7 @@ Zabbix Server                    Zabbix Agent
 
 💡 **Best Practice:** Trong môi trường doanh nghiệp, **Active Mode được khuyến nghị** vì hiệu suất tốt hơn và không cần mở port inbound trên từng host được giám sát.
 
-### 2.5.3 Các Item Keys phổ biến của Zabbix Agent
+### 2.3.3 Các Item Keys phổ biến của Zabbix Agent
 
 ```
 Hệ thống:
@@ -1065,7 +939,7 @@ Custom (UserParameter):
   UserParameter=custom.check,/usr/local/bin/my_check.sh
 ```
 
-### 2.5.4 UserParameter — Mở rộng Agent
+### 2.3.4 UserParameter — Mở rộng Agent
 
 **UserParameter** cho phép định nghĩa các item key tùy chỉnh, chạy bất kỳ script nào và trả về kết quả cho Zabbix.
 
@@ -1083,7 +957,7 @@ UserParameter=dir.size[*],du -sb $1 | awk '{print $1}'
 UserParameter=app.status,/usr/local/bin/check_app_status.sh
 ```
 
-### 2.5.5 Zabbix Agent vs Zabbix Agent 2
+### 2.3.5 Zabbix Agent vs Zabbix Agent 2
 
 Zabbix Agent 2 là thế hệ agent mới, viết lại hoàn toàn bằng **Go** thay vì C.
 
