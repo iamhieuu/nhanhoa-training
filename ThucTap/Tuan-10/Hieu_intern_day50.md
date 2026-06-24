@@ -1232,27 +1232,27 @@ Admin (terminal)
 
 ```bash
 # Test cơ bản — kiểm tra agent kết nối được không
-zabbix_get -s 192.168.1.100 -p 10050 -k agent.ping
+zabbix_get -s 192.168.136.1310 -p 10050 -k agent.ping
 # Kết quả: 1 (thành công)
 
 # Kiểm tra CPU utilization
-zabbix_get -s 192.168.1.100 -p 10050 -k "system.cpu.util[,user]"
+zabbix_get -s 192.168.136.1310 -p 10050 -k "system.cpu.util[,user]"
 # Kết quả: 45.231234
 
 # Kiểm tra disk usage
-zabbix_get -s 192.168.1.100 -p 10050 -k "vfs.fs.size[/,pfree]"
+zabbix_get -s 192.168.136.1310 -p 10050 -k "vfs.fs.size[/,pfree]"
 # Kết quả: 68.492341
 
 # Kiểm tra số nginx process
-zabbix_get -s 192.168.1.100 -p 10050 -k "proc.num[nginx]"
+zabbix_get -s 192.168.136.1310 -p 10050 -k "proc.num[nginx]"
 # Kết quả: 4
 
 # Kiểm tra custom UserParameter
-zabbix_get -s 192.168.1.100 -p 10050 -k "custom.db.connections"
+zabbix_get -s 192.168.136.1310 -p 10050 -k "custom.db.connections"
 # Kết quả: 47
 
 # Test với TLS (PSK)
-zabbix_get -s 192.168.1.100 -p 10050 \
+zabbix_get -s 192.168.136.1310 -p 10050 \
   --tls-connect psk \
   --tls-psk-identity "PSK001" \
   --tls-psk-file /etc/zabbix/zabbix_agent.psk \
@@ -1463,7 +1463,7 @@ T=0.0s: Poller process chọn item từ queue
   │
   ▼
 T=0.0s: Poller mở TCP connection đến Agent
-  │     (IP: 192.168.1.10, Port: 10050)
+  │     (IP: 192.168.136.131, Port: 10050)
   │
   ▼
 T=0.1s: Gửi request: "system.cpu.util\n"
@@ -1587,7 +1587,7 @@ Operation 1 (0 phút): Send message
   Media: Email + Telegram
   Message:
     "PROBLEM: CPU utilization too high on web-server-01
-     Host: web-server-01 (192.168.1.10)
+     Host: web-server-01 (192.168.136.131)
      Severity: HIGH
      Value: 93.4%
      Time: 2026-06-23 10:15:32"
@@ -1725,8 +1725,8 @@ Trên Zabbix Agent (Active Mode):
                     │   Ubuntu 22.04, 16 CPU, 32GB│
                     │   Zabbix 7.0 LTS            │
                     ├─────────────────────────────┤
-                    │   PostgreSQL + TimescaleDB   │
-                    │   Ubuntu 22.04, 8 CPU, 64GB  │
+                    │   PostgreSQL + TimescaleDB  │
+                    │   Ubuntu 22.04, 8 CPU, 64GB │
                     ├─────────────────────────────┤
                     │   Zabbix Web Frontend       │
                     │   Nginx + PHP 8.2           │
@@ -1753,5 +1753,1658 @@ Trên Zabbix Agent (Active Mode):
 
 ---
 
+# CHƯƠNG 3: CÁC CẤU HÌNH CƠ BẢN
+
 
 ---
+
+## 3.2 Sơ đồ mô hình thực hành Chương 3
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      MÔ HÌNH THỰC HÀNH                         │
+│                                                                 │
+│  ┌──────────────────┐          ┌──────────────────────────────┐ │
+│  │  Admin Browser   │  HTTPS   │   Zabbix Web Frontend        │ │
+│  │  (Máy tính bạn)  │◄────────►│   Ubuntu 22.04               │ │
+│  └──────────────────┘          │   http://zabbix-server/      │ │
+│                                └──────────────┬───────────────┘ │
+│                                               │                 │
+│                                    ┌──────────▼──────────────┐  │
+│                                    │   Zabbix Server         │  │
+│                                    │   + MariaDB Database    │  │
+│                                    └──────────┬──────────────┘  │
+│                                               │                 │
+│                          ┌────────────────────┤                 │
+│                          │                    │                 │
+│               ┌──────────▼────┐    ┌──────────▼────┐           │
+│               │  Host 1       │    │  Host 2       │           │
+│               │  Linux Server │    │  Linux Server │           │
+│               │  Zabbix Agent │    │  Zabbix Agent │           │
+│               └───────────────┘    └───────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3.3 Host và Host Groups
+
+### 3.3.1 Host Groups — Tạo cấu trúc phân cấp
+
+**Host Group** là cách phân loại host. Nên tạo cấu trúc theo nhiều chiều ngay từ đầu.
+
+#### Tạo Host Group qua GUI
+
+**Đường dẫn:** `Data collection → Host groups → Create host group`
+
+**Tạo các groups sau:**
+
+| STT | Tên Group | Mục đích |
+|-----|-----------|---------|
+| 1 | `Linux Servers` | Tất cả server Linux |
+| 2 | `Linux Servers/Production` | Server production |
+| 3 | `Linux Servers/Staging` | Server staging |
+| 4 | `Network Devices` | Switch, Router |
+| 5 | `Databases` | Database servers |
+
+**Các bước thực hiện:**
+1. Vào `Data collection` → `Host groups`
+2. Click **`Create host group`** (góc trên phải)
+3. Nhập **Group name:** `Linux Servers`
+4. Click **`Add`**
+5. Lặp lại cho các group còn lại
+
+> 📌 **Lưu ý:** Group `/` dùng để phân cấp cha-con. `Linux Servers/Production` là con của `Linux Servers`. Host trong group con **không tự động** thuộc group cha — phải gán riêng nếu cần.
+
+---
+
+### 3.3.2 Tạo Host
+
+**Đường dẫn:** `Data collection → Hosts → Create host`
+
+#### Tab: Host
+
+| Trường | Giá trị | Giải thích |
+|--------|---------|-----------|
+| **Host name** | `web-server-01` | Tên kỹ thuật, dùng trong expressions |
+| **Visible name** | `Web Server 01 - HCM` | Tên hiển thị thân thiện |
+| **Templates** | `Linux by Zabbix agent` | Gắn template ngay khi tạo |
+| **Host groups** | `Linux Servers/Production` | Nhóm host thuộc về |
+| **Description** | `Nginx web server - Production` | Mô tả |
+
+#### Tab: Interfaces
+
+Click **`Add`** → chọn **`Agent`**:
+
+| Trường | Giá trị |
+|--------|---------|
+| **IP address** | `192.168.136.131` (IP của host) |
+| **DNS name** | `web-server-01.company.com` (hoặc để trống) |
+| **Connect to** | IP |
+| **Port** | `10050` |
+
+<img width="584" height="335" alt="image" src="https://github.com/user-attachments/assets/cc4b1c14-bdd8-4e6e-b773-c87a7f1dbbfd" />
+
+> 📌 **Lưu ý:** Nếu Agent chạy **Active mode**, vẫn phải điền IP/DNS ở đây để Zabbix biết host này là ai. Với Active Agent, port interface không quan trọng (agent tự kết nối ra), nhưng vẫn cần điền để cấu hình hợp lệ.
+
+#### Tab: Macros
+
+Có thể override macro từ template tại đây. Ví dụ:
+
+| Macro | Value | Description |
+|-------|-------|-------------|
+| `{$CPU.UTIL.CRIT}` | `95` | Override ngưỡng CPU cho host này (database server chịu tải cao) |
+
+<img width="581" height="170" alt="image" src="https://github.com/user-attachments/assets/efcc9c20-d655-4904-b3a8-741de824e3cb" />
+
+#### Tab: Encryption
+
+Nếu dùng TLS/PSK:
+- **Connections to host:** `PSK`
+- **Connections from host:** `PSK`
+- **PSK identity:** `PSK001`
+- **PSK:** (32+ byte hex string)
+
+Click **`Add`** để lưu host.
+
+<img width="581" height="183" alt="image" src="https://github.com/user-attachments/assets/52c610ad-72c1-41b2-a188-ec641b370c6c" />
+
+#### Kiểm tra Host sau khi tạo
+
+Sau khoảng 1-2 phút, quay lại `Data collection → Hosts`:
+- Cột **Availability** → icon Agent chuyển sang **màu xanh lá** = kết nối OK
+- Nếu màu đỏ: kiểm tra Agent đang chạy, firewall, địa chỉ IP
+
+<img width="857" height="93" alt="image" src="https://github.com/user-attachments/assets/5950d822-30e9-4106-b01b-37751d8b5ff5" />
+
+```bash
+# Kiểm tra Agent đang chạy trên host được giám sát
+sudo systemctl status zabbix-agent2
+
+# Test kết nối từ Zabbix Server đến Agent
+sudo zabbix_get -s 192.168.136.131 -p 10050 -k agent.ping
+# Kết quả: 1 = thành công
+```
+<img width="504" height="36" alt="image" src="https://github.com/user-attachments/assets/4b8fce29-c571-43fc-acc0-f048eab4ecec" />
+
+---
+
+## 3.4 Items
+
+### 3.4.1 Khái niệm và các loại Item
+
+**Item** là đơn vị thu thập dữ liệu. Mỗi item thu thập **một giá trị cụ thể** theo chu kỳ định sẵn.
+
+**Các loại Item phổ biến:**
+
+| Type | Mô tả | Ví dụ sử dụng |
+|------|-------|--------------|
+| **Zabbix agent** | Passive — Server poll agent | Server có agent, nội bộ |
+| **Zabbix agent (active)** | Agent chủ động gửi data | Agent sau firewall |
+| **SNMP agent** | Poll SNMP OID | Switch, Router, Printer |
+| **HTTP agent** | Gửi HTTP/HTTPS request | REST API, webhook endpoint |
+| **Calculated** | Tính toán từ items khác | Tỷ lệ %, tổng hợp |
+| **Dependent item** | Lấy data từ master item | Parse JSON từ 1 API call |
+| **Zabbix trapper** | Nhận data từ zabbix_sender | Batch jobs, custom scripts |
+| **External check** | Chạy script trên Server | Custom monitoring |
+
+### 3.4.2 Tạo Item qua GUI
+
+**Đường dẫn:** `Data collection → Hosts → [tên host] → Items → Create item`
+
+#### Ví dụ 1: Item kiểm tra CPU
+
+| Trường | Giá trị | Giải thích |
+|--------|---------|-----------|
+| **Name** | `CPU utilization` | Tên hiển thị |
+| **Type** | `Zabbix agent` | Phương thức thu thập |
+| **Key** | `system.cpu.util[,user]` | Key định danh metric |
+| **Type of information** | `Numeric (float)` | Kiểu dữ liệu |
+| **Units** | `%` | Đơn vị hiển thị |
+| **Update interval** | `1m` | Thu thập mỗi 1 phút |
+| **History storage period** | `7d` | Lưu raw data 7 ngày |
+| **Trend storage period** | `365d` | Lưu trend 1 năm |
+| **Description** | `CPU % used by user processes` | Mô tả |
+
+<img width="587" height="363" alt="image" src="https://github.com/user-attachments/assets/7ecede06-8174-4b59-b5fd-5515b8f73354" />
+
+**Tags (cho item này):**
+| Tag | Value |
+|-----|-------|
+| `component` | `cpu` |
+| `scope` | `performance` |
+
+<img width="583" height="167" alt="image" src="https://github.com/user-attachments/assets/662428be-3f9d-4a0e-8f0d-a58703e68807" />
+
+Click **`Add`** để lưu.
+Thường thì khi tạo ra host, ta đã gán cho nó một cái Template. Trong template đó, các kỹ sư Zabbix đã tạo sẵn hàng trăm Item tiêu chuẩn (bao gồm cả CPU, RAM, Ổ cứng...).
+
+### 3.4.3 Custom Intervals — Update interval linh hoạt
+
+Ngoài interval cố định, có thể dùng **Scheduling**:
+
+| Loại | Ví dụ | Mô tả |
+|------|-------|-------|
+| **Flexible** | `50;1-5,09:00-18:00` | 50 giây trong giờ làm việc |
+| **Scheduling** | `wd1-5h9-18` | Chỉ thu thập giờ hành chính |
+| **Disable** | (bỏ trống) | Tắt thu thập |
+
+---
+
+## 3.5 Triggers
+
+### 3.5.1 Khái niệm Trigger
+
+Trigger là **biểu thức điều kiện** đánh giá dữ liệu từ Items. Khi điều kiện `TRUE` → **PROBLEM**. Khi `FALSE` → **OK**.
+
+### 3.5.2 Cú pháp Trigger hiện đại (Zabbix 5.4+)
+
+```
+# Cú pháp mới (Expression-based):
+last(/hostname/item.key) > threshold
+
+# Ví dụ:
+last(/web-server-01/system.cpu.util[,user]) > 90
+avg(/web-server-01/system.cpu.util[,user],5m) > 85
+```
+
+### 3.5.3 Tạo Trigger qua GUI
+
+**Đường dẫn:** `Data collection → Hosts → [host] → Triggers → Create trigger`
+
+#### Ví dụ 1: Trigger CPU cao
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `High CPU utilization on {HOST.NAME}` |
+| **Severity** | `Average` |
+| **Expression** | `avg(/web-server-01/system.cpu.util[,user],5m)>80` |
+| **Recovery expression** | `avg(/web-server-01/system.cpu.util[,user],5m)<70` |
+| **Description** | `CPU utilization exceeded 80% for 5 minutes` |
+| **Manual close** | ☐ (không tick) |
+
+<img width="863" height="442" alt="image" src="https://github.com/user-attachments/assets/2f14ac9d-d478-42db-9c0b-45acbb9ddd4d" />
+
+> 📌 **Recovery Expression:** Đây là **hysteresis** — ngưỡng phục hồi thấp hơn ngưỡng cảnh báo. Giả sử: CPU tăng lên 85% → PROBLEM. Sau đó giảm xuống 75% → vẫn PROBLEM (chưa xuống dưới 70%). Xuống 68% → OK. Điều này chống **flapping** (cảnh báo liên tục khi CPU dao động quanh 80%).
+
+### 3.5.4 Trigger Dependencies — Tránh cảnh báo cascade
+
+**Tình huống thực tế:** Switch mạng down → tất cả server sau switch đều "unreachable" → Zabbix gửi hàng chục alert cho từng server.
+
+**Giải pháp:** Tạo Dependency: Trigger "Server unreachable" phụ thuộc vào Trigger "Switch down". Khi switch down, trigger server sẽ không kích hoạt notification.
+
+**Cách cấu hình:**
+1. Vào trigger của host (ví dụ: `web-server-01: agent not available`)
+2. Tab **Dependencies**
+3. Click **`Add`** → chọn trigger của switch: `core-switch-01: ICMP ping failed`
+4. Save
+
+---
+
+## 3.6 Events và Acknowledgement
+
+### 3.6.1 Xem Events
+
+**Đường dẫn:** `Monitoring → Problems`
+
+Trang Problems hiển thị tất cả vấn đề đang xảy ra. Có thể lọc theo:
+- **Severity:** Warning, Average, High, Disaster
+- **Host groups:** Chỉ xem group cụ thể
+- **Time:** Thời gian xảy ra
+- **Tags:** Lọc theo tags
+
+<img width="845" height="95" alt="image" src="https://github.com/user-attachments/assets/b38f238e-388b-4a1e-91c6-8793da8d8c40" />
+
+### 3.6.2 Acknowledge 
+
+**Mục đích:** Khi nhận alert, engineer vào Zabbix acknowledge để thông báo "Tôi đã biết vấn đề này và đang xử lý". Tránh người khác cũng vào xử lý trùng lặp.
+**Cách ACK:**
+```
+Vào mục Monitoring → Problems.
+Tìm đến dòng Sự cố (Problem) cần xác nhận. Tại cột Update, click vào chữ No (hoặc dấu liên kết chỉnh sửa).
+Cửa sổ Modal Update problem sẽ hiện ra:
+Message: Nhập ghi chú ngắn gọn (Ví dụ: "Đang vào server kiểm tra dịch vụ").
+History: Tích chọn Acknowledge để xác nhận.
+Change severity: Có thể tích chọn để nâng hoặc hạ mức độ nghiêm trọng nếu cần.
+Click nút Update ở dưới cùng để hoàn tất.
+Có thể cấu hình trong Action để khi có ACK thì gửi notification cho team.
+```
+### 3.6.3 Event Correlation
+
+Zabbix hỗ trợ **Event Correlation** — tự động đóng một Problem khi một Problem khác xảy ra.  
+Cấu hình tại: `Configuration → Event correlation`.
+
+<img width="956" height="470" alt="image" src="https://github.com/user-attachments/assets/6b97c87a-a526-4e6b-9c72-94241f06b053" />
+
+---
+
+## 3.7 Tags
+
+### 3.7.1 Tags là gì và tại sao cần?
+
+**Tags** là cặp **name:value** gắn vào Hosts, Items, Triggers, Events để phân loại và lọc dữ liệu. Tags đặc biệt hữu ích khi hệ thống lớn, cần lọc nhanh.
+
+```
+Ví dụ hệ thống Tags cho doanh nghiệp:
+
+Host Tags:
+  environment: production
+  location: hanoi
+  tier: web
+
+Item Tags:
+  component: cpu
+  scope: performance
+
+Trigger/Problem Tags:
+  scope: availability
+  team: devops
+  service: nginx
+```
+
+### 3.7.2 Thêm Tags vào Host
+
+**Đường dẫn:** `Data collection → Hosts → [host] → Tags tab`
+
+Click **`Add`** và thêm:
+
+| Name | Value |
+|------|-------|
+| `environment` | `production` |
+| `location` | `hcm` |
+| `tier` | `web` |
+| `team` | `devops` |
+
+
+<img width="584" height="161" alt="image" src="https://github.com/user-attachments/assets/384663cd-529f-4373-98b2-c7ef4e8371bb" />
+
+### 3.7.3 Sử dụng Tags để lọc
+
+Ở trang `Monitoring → Problems`:
+- Click **Filter** → **Tags**
+- Nhập: `environment = production` AND `team = devops`
+- Chỉ hiện problems liên quan đến team DevOps production
+
+Tags cũng dùng trong **Actions** để lọc: "Chỉ gửi alert cho team-backend khi problem có tag `team:backend`".
+
+---
+
+## 3.8 Visualization (Trực quan hóa)
+
+### 3.8.1 Graphs — Biểu đồ
+
+#### Xem Graph của Item
+
+1. `Monitoring → Hosts → [host] → Graphs`
+2. Chọn graph muốn xem
+3. Có thể điều chỉnh khoảng thời gian (1h, 1d, 1w, 1M...)
+
+#### Tạo Custom Graph
+
+**Đường dẫn:** `Data collection → Hosts → [host] → Graphs → Create graph`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `CPU & Memory Overview` |
+| **Graph type** | `Normal` |
+| **Width** | `900` |
+| **Height** | `200` |
+
+**Thêm Items vào graph (tab Items):**
+
+| Item | Color | Draw style | Y axis side |
+|------|-------|-----------|-------------|
+| `CPU utilization` | `#FF0000` | Line | Left |
+| `Memory available (%)` | `#0000FF` | Line | Right |
+
+
+
+> 💡 **Y axis side:** Dùng 2 trục Y khi 2 metrics có đơn vị/scale khác nhau — ví dụ CPU (0-100%) và Memory bytes (0-32GB).
+
+### 3.8.2 Dashboards — Bảng điều khiển
+
+#### Tạo Dashboard mới
+
+**Đường dẫn:** `Monitoring → Dashboards → Create dashboard`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Production Overview` |
+| **Default auto-refresh** | `1 minute` |
+| **Default time period** | `Last 1 hour` |
+
+#### Thêm Widgets
+
+Click **`Edit dashboard`** → **`+ Add widget`**:
+
+**Widget 1: System information**
+| Trường | Giá trị |
+|--------|---------|
+| **Type** | `System information` |
+| **Name** | `Zabbix Status` |
+
+**Widget 2: Problems**
+| Trường | Giá trị |
+|--------|---------|
+| **Type** | `Problem hosts` |
+| **Name** | `Problem Hosts` |
+| **Host groups** | `Linux Servers/Production` |
+| **Severity** | `Average` và cao hơn |
+
+**Widget 3: Clock**
+| Trường | Giá trị |
+|--------|---------|
+| **Type** | `Clock` |
+| **Name** | `Time` |
+| **Time type** | `Server time` |
+
+
+#### Lưu và Share Dashboard
+
+1. Click **`Save changes`**
+2. Để share cho user khác: Dashboard → **`...`** → **`Share`** → chọn user/group
+
+### 3.8.3 Maps — Sơ đồ mạng
+
+#### Tạo Network Map
+
+**Đường dẫn:** `Monitoring → Maps → Create map`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Production Network` |
+| **Width** | `1000` |
+| **Height** | `600` |
+| **Background image** | (tuỳ chọn, upload ảnh nền) |
+
+**Thêm elements vào map:**
+
+1. Click **`Edit map`**
+2. **Add element** → **`Host`** → chọn host → kéo thả vào vị trí
+3. Có thể thêm **`Host group`**, **`Trigger`**, **`Image`**, **`Shape`**
+
+**Vẽ kết nối (Link):**
+1. Giữ **Ctrl** + click 2 elements
+2. Click **`Add link`**
+3. Cấu hình link: màu, label, trigger điều kiện đổi màu
+
+<img width="589" height="396" alt="image" src="https://github.com/user-attachments/assets/079837a8-8a28-4126-a53b-08ca8ee42bf7" />
+
+---
+
+## 3.9 Templates và Template Groups
+
+### 3.9.1 Template là gì?
+
+**Template** là container tái sử dụng chứa Items, Triggers, Graphs, Dashboards. Thay đổi template → áp dụng cho tất cả hosts dùng template đó.
+
+### 3.9.2 Tạo Template Group
+
+**Đường dẫn:** `Data collection → Template groups → Create template group`
+
+Tạo các groups:
+- `Linux Templates`
+- `Network Device Templates`
+- `Application Templates`
+
+### 3.9.3 Tạo Custom Template
+
+**Đường dẫn:** `Data collection → Templates → Create template`
+
+#### Tab: Template
+
+| Trường | Giá trị |
+|--------|---------|
+| **Template name** | `Custom NGINX Monitoring` |
+| **Visible name** | `NGINX Web Server` |
+| **Template groups** | `Application Templates` |
+| **Description** | `Monitor NGINX web server metrics` |
+
+#### Linked Templates (kế thừa)
+
+Trong phần **Templates**, click **`Select`** và chọn:
+- `Linux by Zabbix agent` — Kế thừa tất cả Linux monitoring
+
+#### Thêm Items vào Template
+
+Sau khi lưu template, vào **Items** của template:
+
+**Item 1 — NGINX process**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `NGINX: Number of processes` |
+| **Key** | `proc.num[nginx]` |
+| **Type** | `Zabbix agent` |
+| **Value type** | `Numeric (unsigned)` |
+| **Update interval** | `1m` |
+
+**Item 2 — NGINX status page** (nếu stub_status được bật)
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `NGINX: Active connections` |
+| **Type** | `HTTP agent` |
+| **Key** | `nginx.active_connections` |
+| **URL** | `http://{HOST.CONN}/nginx_status` |
+| **Preprocessing** | Regex: `Active connections:\s+([0-9]+)` Output: `\1` |
+
+> 📌 **Macro trong URL:** `{HOST.CONN}` là built-in macro trỏ đến địa chỉ kết nối của host. Nên dùng macro thay vì hardcode IP để template dùng được cho nhiều host.
+
+#### Thêm Triggers vào Template
+
+**Trigger — NGINX down:**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `NGINX: Process is not running` |
+| **Severity** | `High` |
+| **Expression** | `last(/Custom NGINX Monitoring/proc.num[nginx])<1` |
+
+> 📌 Trong template, expression dùng **template name** thay vì host name.
+
+#### Thêm Macros vào Template
+
+Tab **Macros** trong template:
+
+| Macro | Default value | Description |
+|-------|--------------|-------------|
+| `{$NGINX.PROCESS.MIN}` | `1` | Minimum number of NGINX processes |
+| `{$NGINX.CONN.MAX}` | `1000` | Max active connections threshold |
+
+Dùng macro trong trigger: `last(/Custom NGINX Monitoring/proc.num[nginx])<{$NGINX.PROCESS.MIN}`
+
+Khi gắn template vào host, host có thể override: `{$NGINX.PROCESS.MIN}` = `2` (chạy nhiều worker hơn).
+
+### 3.9.4 Gắn Template vào Host
+
+**Cách 1: Khi tạo host** — Tab Templates → chọn template.
+
+**Cách 2: Với host đang có:**
+1. `Data collection → Hosts → [host] → Templates tab`
+2. Click **`Select`** → tìm và chọn template
+3. Click **`Update`**
+
+**Gắn template cho nhiều hosts cùng lúc:**
+1. `Data collection → Hosts`
+2. Tick checkbox nhiều hosts
+3. Click **`Mass update`** → Tab Templates → thêm template
+
+### 3.9.5 Export và Import Template
+
+**Export template:**
+1. `Data collection → Templates`
+2. Tick chọn template
+3. Click **`Export`** → tải file `.yaml` hoặc `.xml`
+
+**Import template:**
+1. `Data collection → Templates → Import`
+2. Upload file `.yaml`/`.xml`
+3. Chọn rules: Create new / Update existing / Delete missing
+
+> 💡 **Template Library:** Zabbix cung cấp hàng trăm template tại [share.zabbix.com](https://share.zabbix.com). Download và import vào Zabbix thay vì tự tạo từ đầu.
+
+---
+
+## 3.10 Alerts — Cảnh báo
+
+### 3.10.1 Cấu hình Email (Media Type)
+
+**Đường dẫn:** `Alerts → Media types → Email`
+
+Zabbix đã có sẵn media type Email, chỉ cần cấu hình SMTP:
+
+| Trường | Giá trị |
+|--------|---------|
+| **SMTP server** | `mail.company.com` |
+| **SMTP server port** | `587` |
+| **SMTP helo** | `zabbix.company.com` |
+| **SMTP email** | `zabbix@company.com` |
+| **Security** | `STARTTLS` |
+| **Authentication** | `Username and password` |
+| **Username** | `zabbix@company.com` |
+| **Password** | `your-email-password` |
+
+Click **`Update`** → Test bằng nút **`Test`**: nhập email test và click Send.
+
+### 3.10.2 Cấu hình Telegram (Webhook)
+
+**Đường dẫn:** `Alerts → Media types → Telegram`
+
+Zabbix 7.0 có sẵn media type Telegram, chỉ cần điền:
+
+| Trường | Giá trị |
+|--------|---------|
+| **Token** | `123456789:ABCdefGHIjklMNOpqrsTUVwxyz` (Bot token từ @BotFather) |
+
+**Lấy Telegram Bot Token:**
+1. Mở Telegram → tìm `@BotFather`
+2. `/newbot` → đặt tên bot → lấy token
+3. Lấy Chat ID: gửi tin nhắn đến bot → gọi `https://api.telegram.org/bot<TOKEN>/getUpdates`
+
+### 3.10.3 Thêm Media cho User
+
+**Đường dẫn:** `Users → Users → [user] → Media tab → Add`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Type** | `Email` |
+| **Send to** | `admin@company.com` |
+| **When active** | `1-7,00:00-24:00` (mọi lúc) |
+| **Use if severity** | Tick tất cả từ Warning trở lên |
+
+Thêm Telegram:
+
+| Trường | Giá trị |
+|--------|---------|
+| **Type** | `Telegram` |
+| **Send to** | `123456789` (Telegram Chat ID) |
+| **When active** | `1-7,00:00-24:00` |
+
+### 3.10.4 Tạo Action
+
+**Đường dẫn:** `Alerts → Actions → Trigger actions → Create action`
+
+#### Tab: Action
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Alert Production Issues` |
+| **Status** | `Enabled` |
+
+#### Tab: Conditions
+
+Click **`Add`** và thêm điều kiện:
+
+| Condition | Operator | Value |
+|-----------|---------|-------|
+| `Trigger severity` | `>=` | `Average` |
+| `Host group` | `=` | `Linux Servers/Production` |
+| `Tag` | `contains` | `scope: availability` |
+
+Logic: **AND** (tất cả điều kiện phải thỏa mãn)
+
+#### Tab: Operations (khi PROBLEM)
+
+**Operation 1 — Alert ngay lập tức:**
+- **Operation type:** `Send message`
+- **Send to user groups:** `On-call Engineers`
+- **Send only to:** `All`
+- **Custom message:** ☐ (dùng template mặc định)
+
+Click **`Add`**
+
+**Operation 2 — Escalation sau 30 phút nếu chưa ACK:**
+- **Step:** `2`
+- **Step duration:** `30m`
+- **Conditions:** Problem not acknowledged
+- **Send to user groups:** `Team Lead`
+
+**Tùy chỉnh nội dung message:**
+
+Tick **Custom message**:
+
+```
+Subject: [{TRIGGER.SEVERITY}] {TRIGGER.NAME} on {HOST.NAME}
+
+Message:
+🚨 ZABBIX ALERT
+────────────────────────────
+Host:      {HOST.NAME} ({HOST.IP})
+Problem:   {TRIGGER.NAME}
+Severity:  {TRIGGER.SEVERITY}
+Status:    {TRIGGER.STATUS}
+Value:     {ITEM.VALUE}
+Time:      {EVENT.DATE} {EVENT.TIME}
+────────────────────────────
+{TRIGGER.URL}
+```
+
+#### Tab: Recovery operations (khi RESOLVED)
+
+**Operation:** `Send message`
+- **User groups:** `On-call Engineers`
+- **Custom message:**
+
+```
+Subject: [RESOLVED] {TRIGGER.NAME} on {HOST.NAME}
+
+✅ RESOLVED
+────────────────────────────
+Host:      {HOST.NAME}
+Problem:   {TRIGGER.NAME}
+Duration:  {EVENT.DURATION}
+Resolved:  {EVENT.RECOVERY.DATE} {EVENT.RECOVERY.TIME}
+```
+
+---
+
+## 3.11 Users và User Groups
+
+### 3.11.1 User Roles
+
+Zabbix 6.0+ sử dụng **Roles** để phân quyền chi tiết:
+
+| Role mặc định | Quyền |
+|--------------|-------|
+| **Super admin role** | Toàn quyền — tạo/sửa/xóa mọi thứ |
+| **Admin role** | Quản lý hosts, templates, không quản lý users |
+| **User role** | Chỉ xem — Monitoring, Reports |
+
+**Tạo Custom Role:**
+
+`Users → User roles → Create user role`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Read-only NOC` |
+| **User type** | `User` |
+| **Access to UI elements** | Tick: Monitoring, Reports |
+| **Actions** | Bỏ tick: tất cả actions |
+
+### 3.11.2 Tạo User Group
+
+**Đường dẫn:** `Users → User groups → Create user group`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Group name** | `On-call Engineers` |
+| **Frontend access** | `Default` |
+| **Status** | `Enabled` |
+
+**Tab: Host group permissions:**
+| Host group | Permission |
+|-----------|-----------|
+| `Linux Servers/Production` | `Read-write` |
+| `Network Devices` | `Read` |
+
+**Tab: Template permissions:**
+| Template group | Permission |
+|---------------|-----------|
+| `Application Templates` | `Read` |
+
+### 3.11.3 Tạo User
+
+**Đường dẫn:** `Users → Users → Create user`
+
+#### Tab: User
+
+| Trường | Giá trị |
+|--------|---------|
+| **Username** | `john.doe` |
+| **Name** | `John` |
+| **Last name** | `Doe` |
+| **Groups** | `On-call Engineers` |
+| **Password** | `SecurePassword123!` |
+| **Language** | `English (en_US)` |
+| **Time zone** | `Asia/Ho_Chi_Minh` |
+| **Role** | `Admin role` |
+| **Auto-login** | ☐ |
+
+#### Tab: Media
+
+Thêm email và Telegram của user này (xem mục 3.10.3).
+
+---
+
+## 3.12 Scheduled Reports
+
+### 3.12.1 Scheduled Reports là gì?
+
+Zabbix có thể **tự động tạo và gửi báo cáo PDF** về dashboard theo lịch định kỳ (hàng ngày, hàng tuần, hàng tháng).
+
+> ⚠️ **Yêu cầu:** Scheduled Reports cần **Zabbix Web Service** (zabbix-web-service) được cài đặt riêng. Web Service chịu trách nhiệm render dashboard thành PDF.
+
+### 3.12.2 Cài đặt Zabbix Web Service
+
+```bash
+# Trên Zabbix Server
+sudo apt install zabbix-web-service
+
+# Cấu hình
+sudo nano /etc/zabbix/zabbix_web_service.conf
+```
+
+Cấu hình key:
+```ini
+ListenPort=10053
+LogFile=/var/log/zabbix/zabbix_web_service.log
+SSLCertLocation=/etc/zabbix/ssl/certs
+SSLKeyLocation=/etc/zabbix/ssl/keys
+AllowedIP=127.0.0.1   # Chỉ cho Zabbix Server gọi
+```
+
+```bash
+sudo systemctl enable --now zabbix-web-service
+```
+
+Trong `zabbix_server.conf`, thêm:
+```ini
+WebServiceURL=http://localhost:10053/report
+```
+
+Restart Zabbix Server: `sudo systemctl restart zabbix-server`
+
+### 3.12.3 Tạo Scheduled Report
+
+**Đường dẫn:** `Reports → Scheduled reports → Create scheduled report`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Weekly Production Overview` |
+| **Dashboard** | `Production Overview` |
+| **Period** | `Previous week` |
+| **Cycle** | `Weekly` |
+| **Start time** | `08:00` |
+| **Repeat on** | `Monday` |
+| **Subscriptions** | Chọn user hoặc user group nhận báo cáo |
+| **Subject** | `Weekly Production Monitoring Report` |
+| **Message** | `Please find the weekly monitoring report attached.` |
+| **Status** | `Enabled` |
+
+---
+
+
+
+---
+
+# CHƯƠNG 4: MONITORING NÂNG CAO
+
+---
+
+## 4.2 Service Monitoring (Business Service Monitoring)
+
+### 4.2.1 Khái niệm
+
+**Service Monitoring** cho phép tổ chức các triggers thành cây dịch vụ theo góc nhìn **kinh doanh**, tính **SLA (Service Level Agreement)** và theo dõi "dịch vụ thanh toán online có đang hoạt động không?" thay vì "server nào đang có vấn đề?".
+
+```
+Cây dịch vụ ví dụ:
+
+E-commerce Platform (SLA: 99.9%)
+├── Frontend Service (99.9%)
+│     ├── NGINX on web-01: HTTP check
+│     └── NGINX on web-02: HTTP check
+├── Backend Service (99.9%)
+│     ├── App on app-01: Process check
+│     └── App on app-02: Process check
+└── Database Service (99.99%)
+      ├── MySQL Primary: DB check
+      └── MySQL Replica: Replication lag check
+```
+
+### 4.2.2 Tạo Service qua GUI
+
+**Đường dẫn:** `Services → Services → Create service`
+
+#### Service cha (top-level)
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `E-commerce Platform` |
+| **Parent services** | (để trống — root) |
+| **Status calculation** | `Most critical of child services` |
+| **SLA** | ☑ Enable SLA |
+| **SLO** | `99.9` (%) |
+| **Effective date** | `2026-01-01` |
+
+#### Service con — Frontend
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Frontend Service` |
+| **Parent services** | `E-commerce Platform` |
+| **Status calculation** | `Most critical of child services and problem tags` |
+
+**Tab: Problem tags** (liên kết triggers):
+
+| Tag | Value |
+|-----|-------|
+| `service` | `nginx` |
+| `environment` | `production` |
+
+> 📌 Khi Problem có tag `service=nginx` và `environment=production` được tạo, nó sẽ ảnh hưởng đến status của Frontend Service.
+
+### 4.2.3 Xem SLA Report
+
+**Đường dẫn:** `Services → SLA report`
+
+Chọn:
+- **Service:** `E-commerce Platform`
+- **SLA:** (tên SLA đã tạo)
+- **Reporting period:** `Monthly` / `Weekly`
+
+Report hiển thị:
+- SLO target (mục tiêu)
+- SLI đạt được (thực tế)
+- Uptime / Downtime / Excluded time
+- Biểu đồ theo thời gian
+
+---
+
+## 4.3 Web Monitoring
+
+### 4.3.1 Khái niệm
+
+**Web Monitoring** (Web Scenarios) cho phép Zabbix giả lập hành vi người dùng truy cập website: mở URL, điền form, kiểm tra nội dung response, đo response time.
+
+### 4.3.2 Sơ đồ hoạt động Web Monitoring
+
+```
+Zabbix Server
+     │
+     │ HTTP/HTTPS request (giống browser)
+     ▼
+[Web Application]
+     │
+     │ Response
+     ▼
+Zabbix Server kiểm tra:
+  ✓ HTTP Status Code (200, 302, 404...)
+  ✓ Response time (< 3 giây?)
+  ✓ Nội dung có chứa "Login" không?
+  ✓ Cookie, Redirect đúng không?
+     │
+     ▼
+Items tự động tạo:
+  web.test.fail[scenario]      — 0=OK, N=bước bị lỗi
+  web.test.time[scenario,step,resp] — Thời gian phản hồi
+  web.test.rspcode[scenario,step]   — HTTP response code
+```
+
+### 4.3.3 Tạo Web Scenario
+
+**Đường dẫn:** `Data collection → Hosts → [host] → Web → Create web scenario`
+
+**Ví dụ: Kiểm tra login portal**
+
+#### Tab: Scenario
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Check Login Portal` |
+| **Update interval** | `1m` |
+| **Attempts** | `1` |
+| **Agent** | `Mozilla/5.0...` (giả lập browser) |
+| **HTTP proxy** | (để trống) |
+| **Variables** | `{username}=testuser`, `{password}=testpass` |
+
+#### Tab: Steps
+
+**Step 1 — Mở trang chủ:**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Open homepage` |
+| **URL** | `https://app.company.com/` |
+| **Required string** | `Login` |
+| **Required status codes** | `200` |
+| **Timeout** | `15` giây |
+
+**Step 2 — Gửi form login:**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Submit login form` |
+| **URL** | `https://app.company.com/auth/login` |
+| **Post type** | `Form data` |
+| **Post fields** | `username={username}`, `password={password}` |
+| **Required status codes** | `200,302` |
+
+**Step 3 — Kiểm tra đã vào được dashboard:**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Check dashboard` |
+| **URL** | `https://app.company.com/dashboard` |
+| **Required string** | `Welcome` |
+| **Required status codes** | `200` |
+| **Timeout** | `10` giây |
+
+#### Tab: Authentication
+
+Nếu web dùng HTTP Basic Auth:
+
+| Trường | Giá trị |
+|--------|---------|
+| **HTTP authentication** | `Basic` |
+| **User** | `httpuser` |
+| **Password** | `httppassword` |
+
+### 4.3.4 Tạo Trigger cho Web Monitoring
+
+Sau khi tạo Web Scenario, Zabbix tự tạo Items. Tạo Triggers dựa trên items đó:
+
+**Trigger — Web scenario thất bại:**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Web scenario "Check Login Portal" failed` |
+| **Severity** | `High` |
+| **Expression** | `last(/web-server-01/web.test.fail[Check Login Portal])<>0` |
+
+**Trigger — Response time chậm:**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Login page response time > 3s` |
+| **Severity** | `Average` |
+| **Expression** | `last(/web-server-01/web.test.time[Check Login Portal,Open homepage,resp])>3` |
+
+---
+
+## 4.4 VMware Monitoring
+
+### 4.4.1 Khái niệm
+
+Zabbix có thể giám sát **VMware vCenter / ESXi** thông qua **VMware API (vSphere Web Services SDK)** — không cần cài agent trên VMs.
+
+```
+Zabbix Server
+     │
+     │ HTTPS (port 443)
+     │ VMware vSphere API (SOAP/XML)
+     ▼
+VMware vCenter Server
+     │
+     ├── ESXi Host 1
+     │     ├── VM: web-01
+     │     ├── VM: web-02
+     │     └── VM: db-01
+     └── ESXi Host 2
+           ├── VM: app-01
+           └── VM: app-02
+```
+
+### 4.4.2 Yêu cầu
+
+1. **Zabbix Server** phải được compile với VMware support (bản package chuẩn đã có sẵn).
+2. Tài khoản VMware **read-only** để Zabbix kết nối.
+3. Trong `zabbix_server.conf`:
+
+```bash
+sudo nano /etc/zabbix/zabbix_server.conf
+```
+
+```ini
+StartVMwareCollectors=2        # Số VMware collector processes
+VMwareCacheSize=256M           # Cache size cho VMware data
+VMwareFrequency=60             # Thu thập data mỗi 60 giây
+VMwarePerfFrequency=60         # Thu thập performance data mỗi 60 giây
+```
+
+```bash
+sudo systemctl restart zabbix-server
+```
+
+### 4.4.3 Thêm VMware Host vào Zabbix
+
+**Tạo Host đại diện cho vCenter:**
+
+`Data collection → Hosts → Create host`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Host name** | `vcenter.company.com` |
+| **Template** | `VMware` |
+| **Host groups** | `VMware` |
+
+**Macros (tab Macros):**
+
+| Macro | Value |
+|-------|-------|
+| `{$VMWARE.URL}` | `https://vcenter.company.com/sdk` |
+| `{$VMWARE.USERNAME}` | `zabbix-readonly@vsphere.local` |
+| `{$VMWARE.PASSWORD}` | `password` |
+
+Sau khi lưu, Zabbix tự động **discover** tất cả ESXi hosts và VMs qua LLD, tạo items và triggers cho từng VM.
+
+<img width="583" height="196" alt="image" src="https://github.com/user-attachments/assets/c4c9ea03-6942-42f5-9d20-d62569ccf20a" />
+
+---
+
+# CHƯƠNG 5: DISCOVERY
+
+---
+
+## 5.1 Mục tiêu học tập
+
+-  Cấu hình Network Discovery tự động tìm và thêm hosts.
+-  Thiết lập Active Agent Autoregistration.
+-  Hiểu và cấu hình Low-Level Discovery (LLD) để tự động tạo items.
+
+---
+
+## 5.2 Sơ đồ tổng quan Discovery
+
+```
+DISCOVERY TRONG ZABBIX — 3 CẤP ĐỘ
+
+Cấp 1: NETWORK DISCOVERY
+  Zabbix Server quét dải IP → Phát hiện hosts mới
+  → Tự động tạo Host trong Zabbix
+
+Cấp 2: ACTIVE AGENT AUTOREGISTRATION
+  Agent khởi động → Tự đăng ký với Server
+  → Server tự tạo Host và gắn Template
+
+Cấp 3: LOW-LEVEL DISCOVERY (LLD)
+  Agent khám phá thực thể động trên host
+  (filesystem, network interface, process...)
+  → Tự động tạo Items, Triggers, Graphs
+```
+
+---
+
+## 5.3 Network Discovery
+
+### 5.3.1 Khái niệm
+
+**Network Discovery** là tính năng Zabbix Server **tự động quét dải mạng** để tìm thiết bị mới. Khi tìm thấy, có thể tự động thêm vào monitoring.
+
+### 5.3.2 Tạo Discovery Rule
+
+**Đường dẫn:** `Data collection → Discovery → Create discovery rule`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Discover Production Network` |
+| **Discovery by proxy** | `No proxy` (hoặc chọn proxy) |
+| **IP range** | `192.168.1.1-254` |
+| **Update interval** | `1h` |
+| **Status** | `Enabled` |
+
+**Checks (phương thức kiểm tra):**
+
+Click **`Add`** cho mỗi check:
+
+| Check | Port | Mục đích |
+|-------|------|---------|
+| **Zabbix agent** | `10050` | Phát hiện host có Zabbix Agent |
+| **ICMP ping** | — | Phát hiện host đang online |
+| **SSH** | `22` | Phát hiện Linux server |
+| **SNMP v2** | `161` | Phát hiện thiết bị mạng |
+
+**Device uniqueness criteria:**
+- `IP address` — Mỗi IP là một host duy nhất (phổ biến nhất)
+
+### 5.3.3 Tạo Discovery Action
+
+**Đường dẫn:** `Alerts → Actions → Discovery actions → Create action`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Auto-add Linux hosts` |
+
+**Conditions:**
+
+| Condition | Operator | Value |
+|-----------|---------|-------|
+| `Discovery check` | `=` | `Zabbix agent` |
+| `Discovery status` | `=` | `Up` |
+| `Service type` | `=` | `SSH` |
+
+**Operations:**
+
+| Operation | Giá trị |
+|-----------|---------|
+| **Add host** | (tạo host trong Zabbix) |
+| **Add to host groups** | `Discovered hosts` |
+| **Link to templates** | `Linux by Zabbix agent` |
+| **Enable host** | (bật host để monitoring) |
+
+> 📌 Zabbix tạo một Host Group đặc biệt `Discovered hosts` để chứa các host được discovery tự động. Sau khi xem xét, admin có thể di chuyển host vào group phù hợp.
+
+---
+
+## 5.4 Active Agent Autoregistration
+
+### 5.4.1 Khái niệm
+
+**Autoregistration** cho phép Zabbix Agent **tự đăng ký** với Server khi khởi động. Server tự động tạo Host và gắn Template — không cần admin làm gì.
+
+Lý tưởng cho:
+- **Cloud autoscaling:** EC2 instance mới spin up → Agent khởi động → Tự đăng ký
+- **Provisioning automation:** Ansible deploy server mới → Agent cài xong → Tự vào Zabbix
+
+### 5.4.2 Cấu hình Agent cho Autoregistration
+
+Trên **host được giám sát**:
+
+```bash
+sudo nano /etc/zabbix/zabbix_agent2.conf
+```
+
+```ini
+# Địa chỉ Zabbix Server (Agent Active Mode)
+ServerActive=192.168.1.5
+
+# Hostname sẽ được dùng khi đăng ký
+# Hostname=  ← comment ra để dùng system hostname
+HostnameItem=system.hostname
+
+# Metadata giúp Server nhận biết loại host này
+HostMetadata=Linux production nginx
+
+# Hoặc dùng file chứa metadata
+# HostMetadataItem=system.uname
+```
+
+```bash
+sudo systemctl restart zabbix-agent2
+```
+
+### 5.4.3 Tạo Autoregistration Action
+
+**Đường dẫn:** `Alerts → Actions → Autoregistration actions → Create action`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `Auto-register Linux Production Hosts` |
+
+**Conditions:**
+
+| Condition | Operator | Value |
+|-----------|---------|-------|
+| `Host metadata` | `contains` | `Linux production` |
+
+**Operations:**
+
+| Operation | Giá trị |
+|-----------|---------|
+| **Add host** | |
+| **Add to host groups** | `Linux Servers/Production` |
+| **Link to templates** | `Linux by Zabbix agent` |
+| **Enable host** | |
+
+**Operations cho NGINX server (thêm điều kiện metadata):**
+
+| Condition | Operator | Value |
+|-----------|---------|-------|
+| `Host metadata` | `contains` | `nginx` |
+
+| Operation | Giá trị |
+|-----------|---------|
+| **Link to templates** | `Custom NGINX Monitoring` |
+
+> 💡 **Thực tế:** Khi Ansible deploy một web server mới, script Ansible cài Zabbix Agent với `HostMetadata=Linux production nginx`. Agent tự đăng ký → Zabbix tự thêm vào group Production, gắn cả template Linux lẫn NGINX. Zero manual work.
+
+---
+
+## 5.5 Low-Level Discovery (LLD)
+
+### 5.5.1 Khái niệm
+
+**LLD** là cơ chế Zabbix Agent **khám phá các thực thể động** trên host và báo cáo về Server. Server dùng thông tin này để **tự động tạo Items, Triggers, Graphs** cho từng thực thể.
+
+```
+Ví dụ LLD Filesystem Discovery:
+
+Agent phát hiện:
+  /        → tạo Item: vfs.fs.size[/,pfree]
+  /var     → tạo Item: vfs.fs.size[/var,pfree]
+  /opt     → tạo Item: vfs.fs.size[/opt,pfree]
+  /boot    → tạo Item: vfs.fs.size[/boot,pfree]
+
+Thêm ổ mới /data:
+  /data    → tự động tạo Item: vfs.fs.size[/data,pfree]
+```
+
+### 5.5.2 LLD Rules có sẵn trong Templates
+
+Template `Linux by Zabbix agent` đã có sẵn các LLD rules:
+
+| Discovery Rule | Khám phá gì | Items tạo ra |
+|---------------|------------|-------------|
+| `vfs.fs.discovery` | Filesystems | Disk used, free, inodes |
+| `net.if.discovery` | Network interfaces | Bandwidth in/out, errors |
+| `proc.cpu.util` discovery | Processes | CPU, memory per process |
+| `system.cpu.discovery` | CPU cores | Per-core CPU stats |
+
+### 5.5.3 Xem LLD đang hoạt động
+
+`Data collection → Hosts → [host] → Discovery`
+
+Danh sách Discovery Rules → xem **Last check** và **Status**.
+
+Click **`Test`** trên một rule để xem ngay kết quả discovery:
+
+```json
+[
+  {"{#FSNAME}": "/"},
+  {"{#FSNAME}": "/var"},
+  {"{#FSNAME}": "/boot"},
+  {"{#FSNAME}": "/opt"}
+]
+```
+
+### 5.5.4 Tạo Custom LLD Rule
+
+**Tình huống:** Giám sát nhiều MySQL databases trên một server, databases có thể thêm/bớt.
+
+#### Bước 1: UserParameter trên Agent
+
+Trên host MySQL:
+
+```bash
+sudo nano /etc/zabbix/zabbix_agent2.d/mysql_discovery.conf
+```
+
+```ini
+# Trả về danh sách databases dưới dạng JSON
+UserParameter=mysql.db.discovery,mysql -u zabbix -pZabbixPass \
+  -e "SELECT schema_name FROM information_schema.schemata \
+      WHERE schema_name NOT IN ('information_schema','performance_schema','mysql','sys');" \
+  --batch --silent 2>/dev/null | \
+  awk 'BEGIN{print "["} {if(NR>1)print ","; printf "{\"{\#DBNAME}\":\"%s\"}",$1} END{print "]"}'
+```
+
+```bash
+sudo systemctl restart zabbix-agent2
+
+# Test thủ công
+zabbix_get -s localhost -p 10050 -k mysql.db.discovery
+# Output: [{"#{DBNAME}":"production"},{"#{DBNAME}":"analytics"}]
+```
+
+#### Bước 2: Tạo LLD Rule trên Template/Host
+
+**Đường dẫn:** `Data collection → Hosts → [host] → Discovery → Create discovery rule`
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `MySQL databases discovery` |
+| **Type** | `Zabbix agent` |
+| **Key** | `mysql.db.discovery` |
+| **Update interval** | `1h` |
+
+**Tab: Filters** (loại trừ databases không cần monitor):
+
+| Macro | Regex |
+|-------|-------|
+| `{#DBNAME}` | `^(?!test|temp).*$` |
+
+#### Bước 3: Tạo Item Prototypes
+
+Trong LLD Rule → **Item prototypes → Create item prototype**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `MySQL DB {#DBNAME}: Table count` |
+| **Key** | `mysql.db.tablecount[{#DBNAME}]` |
+| **Type** | `Zabbix agent` |
+| **Value type** | `Numeric (unsigned)` |
+| **Update interval** | `10m` |
+
+Cần thêm UserParameter tương ứng:
+```ini
+UserParameter=mysql.db.tablecount[*],mysql -u zabbix -pZabbixPass \
+  -e "SELECT COUNT(*) FROM information_schema.tables \
+      WHERE table_schema='$1';" --batch --silent 2>/dev/null | tail -1
+```
+
+#### Bước 4: Tạo Trigger Prototypes
+
+Trong LLD Rule → **Trigger prototypes → Create trigger prototype**
+
+| Trường | Giá trị |
+|--------|---------|
+| **Name** | `MySQL DB {#DBNAME}: Table count dropped significantly` |
+| **Severity** | `High` |
+| **Expression** | `change(/hostname/mysql.db.tablecount[{#DBNAME}])<-10` |
+
+> 📌 `{#DBNAME}` là **LLD Macro** — được thay thế bằng giá trị thực khi tạo items thực tế.
+
+---
+
+
+
+# CHƯƠNG 6: BACKUP & RESTORE
+
+---
+
+
+
+## 6.1 Sơ đồ dữ liệu cần backup
+
+```
+DỮ LIỆU ZABBIX CẦN BACKUP
+
+┌─────────────────────────────────────────────┐
+│  Database (MariaDB)                         │
+│  ├── Cấu hình: hosts, items, triggers...    │ ← CRITICAL
+│  ├── History: dữ liệu metric theo thời gian │ ← Lớn, có thể bỏ qua
+│  └── Trends: thống kê theo giờ              │ ← Có thể bỏ qua
+├─────────────────────────────────────────────┤
+│  Configuration Files                        │
+│  ├── /etc/zabbix/zabbix_server.conf         │ ← Quan trọng
+│  ├── /etc/zabbix/zabbix_agentd.conf         │ ← Quan trọng
+│  └── /etc/zabbix/web/ (PHP config)          │ ← Quan trọng
+├─────────────────────────────────────────────┤
+│  SSL/TLS Files (nếu dùng)                   │
+│  └── /etc/zabbix/ssl/                       │ ← Quan trọng
+└─────────────────────────────────────────────┘
+```
+
+---
+
+## 6.2 Database Backup
+
+### 6.2.1 Backup MariaDB — mysqldump
+
+**Backup toàn bộ database Zabbix:**
+
+```bash
+# Tạo thư mục backup
+sudo mkdir -p /backup/zabbix/db
+
+# Backup toàn bộ database
+sudo mysqldump \
+  --user=zabbix \
+  --password \
+  --single-transaction \
+  --routines \
+  --triggers \
+  --events \
+  zabbix > /backup/zabbix/db/zabbix_$(date +%Y%m%d_%H%M%S).sql
+
+# Nén để tiết kiệm dung lượng
+gzip /backup/zabbix/db/zabbix_$(date +%Y%m%d_%H%M%S).sql
+```
+
+> 📌 **`--single-transaction`:** Backup nhất quán mà không cần lock tables — MariaDB vẫn phục vụ Zabbix bình thường trong khi backup.
+
+**Backup chỉ phần cấu hình (không có history — file nhỏ hơn nhiều):**
+
+```bash
+# Danh sách tables cấu hình (không có history/trends)
+CONFIG_TABLES="acknowledges actions alert_profiles auditlog conditions \
+  config dbversion dashboard drules expressions globalmacro groups \
+  hosts hostmacro httptest httptestitem httptest_field items \
+  maintenance media mediatype opcommand operations problem \
+  profiles proxy rights roles scripts services sysmaps \
+  tags templates triggers users usrgrp valuemaps"
+
+sudo mysqldump \
+  --user=zabbix \
+  --password \
+  --single-transaction \
+  zabbix $CONFIG_TABLES \
+  > /backup/zabbix/db/zabbix_config_$(date +%Y%m%d).sql
+```
+
+### 6.2.2 Script Backup tự động hàng đêm
+
+```bash
+sudo nano /usr/local/bin/zabbix_backup.sh
+```
+
+```bash
+#!/bin/bash
+# Zabbix Database Backup Script
+# Chạy hàng đêm lúc 2:00 AM
+
+BACKUP_DIR="/backup/zabbix/db"
+DB_NAME="zabbix"
+DB_USER="zabbix"
+DB_PASS="your_password"
+KEEP_DAYS=30
+DATE=$(date +%Y%m%d_%H%M%S)
+LOGFILE="/var/log/zabbix_backup.log"
+
+echo "[$(date)] Starting Zabbix backup..." >> $LOGFILE
+
+# Tạo backup
+mysqldump \
+  --user=$DB_USER \
+  --password=$DB_PASS \
+  --single-transaction \
+  --routines \
+  --triggers \
+  $DB_NAME | gzip > $BACKUP_DIR/zabbix_$DATE.sql.gz
+
+if [ $? -eq 0 ]; then
+    echo "[$(date)] Backup completed: zabbix_$DATE.sql.gz" >> $LOGFILE
+    # Gửi metrics vào Zabbix
+    zabbix_sender -z 127.0.0.1 -s "$(hostname)" \
+      -k backup.zabbix.status -o 0
+else
+    echo "[$(date)] ERROR: Backup failed!" >> $LOGFILE
+    zabbix_sender -z 127.0.0.1 -s "$(hostname)" \
+      -k backup.zabbix.status -o 1
+fi
+
+# Xóa backup cũ hơn KEEP_DAYS ngày
+find $BACKUP_DIR -name "zabbix_*.sql.gz" \
+  -mtime +$KEEP_DAYS -delete
+
+echo "[$(date)] Old backups cleaned (>${KEEP_DAYS}d)" >> $LOGFILE
+```
+
+```bash
+sudo chmod +x /usr/local/bin/zabbix_backup.sh
+
+# Thêm vào crontab
+sudo crontab -e
+```
+
+```cron
+# Backup Zabbix database hàng đêm lúc 2:00 AM
+0 2 * * * /usr/local/bin/zabbix_backup.sh
+```
+
+### 6.2.3 Restore từ Backup
+
+```bash
+# Dừng Zabbix Server (tránh conflict khi restore)
+sudo systemctl stop zabbix-server
+
+# Giải nén (nếu file nén)
+gunzip /backup/zabbix/db/zabbix_20260623_020000.sql.gz
+
+# Restore database
+mysql --user=zabbix --password zabbix < /backup/zabbix/db/zabbix_20260623_020000.sql
+
+# Khởi động lại
+sudo systemctl start zabbix-server
+
+# Kiểm tra
+sudo systemctl status zabbix-server
+sudo tail -f /var/log/zabbix/zabbix_server.log
+```
+
+---
+
+## 6.3 Backup Configuration Files
+
+```bash
+# Backup toàn bộ thư mục cấu hình Zabbix
+sudo tar -czf /backup/zabbix/config/zabbix_config_$(date +%Y%m%d).tar.gz \
+  /etc/zabbix/ \
+  /usr/share/zabbix/ \
+  /etc/nginx/conf.d/zabbix.conf \
+  /etc/php/8.*/fpm/pool.d/zabbix.conf 2>/dev/null
+
+echo "Config backup done: $(ls -lh /backup/zabbix/config/ | tail -1)"
+```
+
+---
+
+## 6.4 Import/Export qua Frontend (GUI)
+
+### 6.4.1 Export Templates
+
+**Đường dẫn:** `Data collection → Templates`
+
+1. Tick checkbox các templates muốn export
+2. Click **`Export`** (góc trên phải danh sách)
+3. Chọn format: **YAML** (khuyến nghị) hoặc XML/JSON
+4. File được tải về máy
+
+### 6.4.2 Import Templates
+
+**Đường dẫn:** `Data collection → Templates → Import`
+
+1. Click **`Import`**
+2. **Choose file:** chọn file `.yaml`/`.xml`
+3. **Rules:**
+
+| Rule | Create new | Update existing | Delete missing |
+|------|-----------|----------------|----------------|
+| Groups | ☑ | ☑ | ☐ |
+| Hosts | ☑ | ☑ | ☐ |
+| Items | ☑ | ☑ | ☐ |
+| Triggers | ☑ | ☑ | ☐ |
+
+4. Click **`Import`**
+
+### 6.4.3 Export Hosts
+
+**Đường dẫn:** `Data collection → Hosts`
+1. Tick chọn hosts
+2. **`Export`** → YAML
+
+Hữu ích khi **migrate cấu hình** từ Zabbix server này sang server khác.
+
+---
+
+## 6.5 Import/Export qua API
+
+### 6.5.1 Xác thực API
+
+```bash
+# Lấy auth token
+AUTH_TOKEN=$(curl -s -X POST \
+  https://zabbix.company.com/api_jsonrpc.php \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "user.login",
+    "params": {
+      "username": "Admin",
+      "password": "zabbix"
+    },
+    "id": 1
+  }' | python3 -c "import sys,json; print(json.load(sys.stdin)['result'])")
+
+echo "Token: $AUTH_TOKEN"
+```
+
+### 6.5.2 Export qua API
+
+```bash
+# Export template qua API
+curl -s -X POST \
+  https://zabbix.company.com/api_jsonrpc.php \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"jsonrpc\": \"2.0\",
+    \"method\": \"configuration.export\",
+    \"params\": {
+      \"options\": {
+        \"templates\": [\"10084\"]
+      },
+      \"format\": \"yaml\"
+    },
+    \"auth\": \"$AUTH_TOKEN\",
+    \"id\": 1
+  }" | python3 -c "
+import sys, json
+result = json.load(sys.stdin)
+print(result['result'])
+" > template_export.yaml
+```
+
+### 6.5.3 Import qua API
+
+```bash
+# Đọc nội dung file template
+TEMPLATE_CONTENT=$(cat template_export.yaml | python3 -c "
+import sys, json
+content = sys.stdin.read()
+print(json.dumps(content))
+")
+
+# Import qua API
+curl -s -X POST \
+  https://zabbix.company.com/api_jsonrpc.php \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"jsonrpc\": \"2.0\",
+    \"method\": \"configuration.import\",
+    \"params\": {
+      \"format\": \"yaml\",
+      \"rules\": {
+        \"templates\": {\"createMissing\": true, \"updateExisting\": true},
+        \"items\": {\"createMissing\": true, \"updateExisting\": true},
+        \"triggers\": {\"createMissing\": true, \"updateExisting\": true}
+      },
+      \"source\": $TEMPLATE_CONTENT
+    },
+    \"auth\": \"$AUTH_TOKEN\",
+    \"id\": 1
+  }"
+```
+
+---
+
