@@ -627,3 +627,40 @@ sudo zabbix_get -s 192.168.136.146 -p 10050 -k "vm.memory.size[available]"
 sudo zabbix_get -s 192.168.136.146 -p 10050 -k "vfs.fs.size[/,free]"
 ```
 <img width="619" height="101" alt="image" src="https://github.com/user-attachments/assets/efaba1cc-fe22-4994-a5db-19f393c46226" />
+
+---------------------
+
+# HA cho Zabbix 
+
+**Vai trò từng máy:**
+ 
+| VM | Hostname | IP | Vai trò |
+|----|----------|----|---------|
+| VM1 | zabbix-node1 | 192.168.136.131 | Zabbix Server Node 1 (Active) + MariaDB |
+| VM2 | zabbix-node2 | 192.168.136.134 | Zabbix Server Node 2 (Standby) |
+| VM3 | zabbix-agent01 | 192.168.136.146 | Zabbix Agent (host được giám sát) |
+ 
+> **Lưu ý:** Trong lab này, MariaDB chạy trên Node1 và cả 2 Zabbix Server node đều kết nối vào đó. Đây là cấu hình đơn giản cho mục đích học tập. Môi trường production cần Database HA riêng (Galera Cluster).
+
+## Cơ chế hoạt động HA
+ 
+```
+Trạng thái bình thường:
+ 
+  [Node1 - ACTIVE]  ←── poll data, process triggers, send alerts
+       │
+       │ cập nhật heartbeat vào DB mỗi 5 giây
+       ▼
+  [MariaDB]  ←── [Node2 - STANDBY] đọc heartbeat của Node1
+       
+  Node2 không làm gì, chỉ theo dõi heartbeat của Node1
+Khi Node1 bị down:
+ 
+  [Node1 - DOWN]  ✗  heartbeat ngừng cập nhật
+       │
+       │ Sau 30 giây không thấy heartbeat
+       ▼
+  [Node2] phát hiện → tự promote thành ACTIVE
+  [Node2 - ACTIVE]  ←── tiếp tục toàn bộ monitoring
+```
+
