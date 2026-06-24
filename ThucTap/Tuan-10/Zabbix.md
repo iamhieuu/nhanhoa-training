@@ -74,7 +74,8 @@ lsb_release -a
 ```
 <img width="318" height="95" alt="image" src="https://github.com/user-attachments/assets/ed0c8660-d308-4880-9c9e-ca9dd7534c2f" />
 
-## 3 Cài đặt MariaDB 10.11
+
+### 3 Cài đặt MariaDB 10.11
 ```
 # Thêm MariaDB repository chính thức (10.11 LTS)
 curl -LsS https://downloads.mariadb.com/MariaDB/mariadb_repo_setup | sudo bash -s -- --mariadb-server-version="mariadb-10.11"
@@ -90,8 +91,9 @@ sudo systemctl enable mariadb
 sudo systemctl status mariadb
 ```
 <img width="925" height="331" alt="image" src="https://github.com/user-attachments/assets/9362370b-d103-4d96-8664-31efb1dcbae2" />
-```
 
+
+```
 # Kiểm tra phiên bản
 sudo mysql --version
 ```
@@ -318,7 +320,8 @@ http://192.168.136.131
 <img width="740" height="392" alt="image" src="https://github.com/user-attachments/assets/8a79c649-8f21-4138-b202-c5527051029c" />
 
 ### Bước 1 — Check prerequisites
-Trang đầu tiên kiểm tra môi trường PHP. Tất cả dòng phải hiển thị "OK" màu xanh. Nếu có dòng "Fail":
+
+Trang đầu tiên kiểm tra môi trường PHP. Tất cả dòng phải hiển thị "OK" màu xanh. Nếu có dòng "Fail":  
 ```
 # Kiểm tra lại PHP extensions
 php -m | grep -E "bcmath|mbstring|gd|xml|ldap|json"
@@ -330,9 +333,11 @@ systemctl restart php8.1-fpm
 ```
 <img width="481" height="276" alt="image" src="https://github.com/user-attachments/assets/7d5dac5d-650f-4ac6-a688-2c5c55fd332a" />
 
+
 ### Bước 2 — Configure DB connection
 
-<img width="466" height="277" alt="image" src="https://github.com/user-attachments/assets/f381fbd3-d8a8-4890-b149-055e39838e63" />
+<img width="466" height="277" alt="image" src="https://github.com/user-attachments/assets/f381fbd3-d8a8-4890-b149-055e39838e63" />  
+
 ```
 Database type:    MySQL
 Database host:    localhost
@@ -371,7 +376,8 @@ sau đó **đổi mật khẩu Admin ngay lập tức**
 ----
 
 ## Cấu hình VM2 (Zabbix Agent)
-# 1 Kiểm tra mạng và hostname
+
+#### 1 Kiểm tra mạng và hostname
 ```
 # Đặt hostname
 sudo hostnamectl set-hostname zabbix-agent01
@@ -386,7 +392,7 @@ ping -c 3 192.168.136.131
 
 ---
 
-## 2 Cập nhật hệ thống
+#### 2 Cập nhật hệ thống
 
 ```bash
 sudo apt update && sudo apt upgrade -y
@@ -394,7 +400,7 @@ sudo apt update && sudo apt upgrade -y
 
 ---
 
-## 3 Cài đặt Zabbix Agent 2
+#### 3 Cài đặt Zabbix Agent 2
 
 ```bash
 # Tải repository Zabbix 7.0 cho Ubuntu 22.04
@@ -416,7 +422,7 @@ zabbix_agent2 --version
 
 ---
 
-## 4 Cấu hình Zabbix Agent 2
+#### 4 Cấu hình Zabbix Agent 2
 
 ```bash
 # Backup file cấu hình
@@ -446,7 +452,7 @@ Lưu file và thoát.
 
 ---
 
-## 5 Khởi động Agent
+#### 5 Khởi động Agent
 
 ```bash
 sudo systemctl start zabbix-agent2
@@ -470,7 +476,7 @@ Kết quả mong đợi:
 
 ---
 
-## 6 Cấu hình Firewall
+#### 6 Cấu hình Firewall
 
 ```bash
 sudo ufw allow 10050/tcp comment 'Zabbix Agent'
@@ -484,7 +490,7 @@ sudo ufw status
 
 ---
 
-## 7 Kiểm tra Agent từ Zabbix Server (VM1)
+#### 7 Kiểm tra Agent từ Zabbix Server (VM1)
 
 Nếu chưa có công cụ test:
 
@@ -531,9 +537,9 @@ zabbix_get -s 192.168.136.146 -p 10050 -k "vm.memory.size[available]"
 
 -----
 
-# Thêm VM2 vào Zabbix Frontend
+## Thêm VM2 vào Zabbix Frontend
 
-## 1 Thêm Host
+#### 1 Thêm Host
 
 Truy cập trình duyệt:
 
@@ -545,14 +551,16 @@ http://<IP_ZABBIX_SERVER>/
 
 **Configuration → Hosts → Create host**
 
-### Vào mục quản lý Hosts
+#### Vào mục quản lý Hosts
 ```
 Nhìn sang cột menu màu xanh đậm ở bên trái màn hình.
 Click vào mục Data collection (nằm ngay dưới mục Reports).
 Một menu con sẽ xổ ra, bạn chọn mục Hosts.
 Sau khi vào mục Hosts, nhìn lên góc trên cùng bên phải màn hình, bạn sẽ thấy một nút màu xanh dương có chữ Create host. Hãy click vào đó.
 ```
-### Điền thông tin
+
+#### Điền thông tin
+
 ```
 Host name: Điền zabbix-agent01 
 Templates: Click vào ô này, gõ tìm từ khóa Linux by Zabbix agent 2 (hoặc Linux by Zabbix agent tùy thuộc vào bản agent bạn cài dưới client) rồi chọn nó.
@@ -567,7 +575,7 @@ Cuối cùng, cuộn xuống dưới cùng bấm nút Add (Màu xanh dương) đ
 
 ---
 
-## D.2 Kiểm tra Host đã kết nối
+### 2 Kiểm tra Host đã kết nối
 
 **Data → Hosts**
 
@@ -579,7 +587,7 @@ Kiểm tra cột **Availability**:
  màu xám   : Chưa poll dữ liệu (đợi 1–2 phút)
 ```
 
-### Kiểm tra từ Server bằng lệnh
+#### Kiểm tra từ Server bằng lệnh
 
 ```bash
 sudo zabbix_get -s 192.168.136.146 -p 10050 -k "agent.ping"
@@ -590,7 +598,7 @@ Kết quả mong đợi:
 
 ---
 
-## D.3 Kiểm tra dữ liệu thu thập
+### 3 Kiểm tra dữ liệu thu thập
 
 **Monitoring → Latest data**
 ````
