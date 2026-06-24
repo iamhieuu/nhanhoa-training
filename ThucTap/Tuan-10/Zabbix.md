@@ -9,7 +9,7 @@ Sơ đồ mô hình Lab:
 │  ┌──────────────────────┐   ┌────────────────┐  │
 │  │  zabbix-server       │   │  zabbix-agent  │  │
 │  │  Ubuntu 22.04        │   │  Ubuntu 22.04  │  │
-│  │  192.168.136.131     │   │  192.168.56.20 │  │
+│  │  192.168.136.131     │   │  192.168.136.146 │  │
 │  │  RAM: 4GB, Disk: 40G │   │  RAM: 1GB      │  │
 │  └──────────────────────┘   └────────────────┘  │
 │                                                 │
@@ -371,3 +371,251 @@ sau đó **đổi mật khẩu Admin ngay lập tức**
 ----
 
 ## Cấu hình VM2 (Zabbix Agent)
+# 1 Kiểm tra mạng và hostname
+```
+# Đặt hostname
+sudo hostnamectl set-hostname zabbix-agent01
+# Kiểm tra hostname
+hostnamectl
+# Kiểm tra IP được cấp từ DHCP
+ip addr
+# Test kết nối đến Zabbix Server (VM1)
+ping -c 3 192.168.136.131
+```
+<img width="681" height="214" alt="image" src="https://github.com/user-attachments/assets/de8fa604-2d1e-424f-82d1-c16c8ab63d21" />
+
+---
+
+## 2 Cập nhật hệ thống
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+---
+
+## 3 Cài đặt Zabbix Agent 2
+
+```bash
+# Tải repository Zabbix 7.0 cho Ubuntu 22.04
+wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_7.0-2+ubuntu22.04_all.deb
+
+# Cài repository
+sudo dpkg -i zabbix-release_7.0-2+ubuntu22.04_all.deb
+
+# Cập nhật package
+sudo apt update
+
+# Cài Zabbix Agent 2
+sudo apt install -y zabbix-agent2
+
+# Kiểm tra phiên bản
+zabbix_agent2 --version
+```
+<img width="627" height="304" alt="image" src="https://github.com/user-attachments/assets/0b695230-d888-48d2-bc89-ffc73bc77ba4" />
+
+---
+
+## 4 Cấu hình Zabbix Agent 2
+
+```bash
+# Backup file cấu hình
+sudo cp /etc/zabbix/zabbix_agent2.conf /etc/zabbix/zabbix_agent2.conf.bak
+
+# Mở file cấu hình
+sudo nano /etc/zabbix/zabbix_agent2.conf
+```
+
+Tìm và sửa các dòng:
+
+```ini
+Server=192.168.136.131
+
+ServerActive=192.168.136.131
+
+Hostname=zabbix-agent01
+```
+
+Giải thích:
+
+* `Server`: IP của Zabbix Server được phép truy vấn Agent.
+* `ServerActive`: Agent chủ động gửi dữ liệu về Server.
+* `Hostname`: Phải trùng với Hostname khi tạo Host trên Zabbix Frontend.
+
+Lưu file và thoát.
+
+---
+
+## 5 Khởi động Agent
+
+```bash
+sudo systemctl start zabbix-agent2
+sudo systemctl enable zabbix-agent2
+# Kiểm tra trạng thái
+sudo systemctl status zabbix-agent2
+```
+
+<img width="747" height="236" alt="image" src="https://github.com/user-attachments/assets/124b88f3-bf97-4661-8187-bc159f04c913" />
+  
+
+Kiểm tra port Agent:  
+
+```bash
+sudo ss -tlnp | grep 10050
+```
+
+Kết quả mong đợi:
+<img width="706" height="47" alt="image" src="https://github.com/user-attachments/assets/96e2458b-fce7-4201-aed0-c8a3278d93c1" />
+
+
+---
+
+## 6 Cấu hình Firewall
+
+```bash
+sudo ufw allow 10050/tcp comment 'Zabbix Agent'
+
+sudo ufw allow 22/tcp comment 'SSH'
+
+sudo ufw reload
+
+sudo ufw status
+```
+
+---
+
+## 7 Kiểm tra Agent từ Zabbix Server (VM1)
+
+Nếu chưa có công cụ test:
+
+```bash
+sudo apt install -y zabbix-get
+```
+
+Thực hiện các lệnh kiểm tra:
+
+```bash
+zabbix_get -s 192.168.136.146 -p 10050 -k "agent.ping"
+```
+<img width="574" height="47" alt="image" src="https://github.com/user-attachments/assets/7fc94823-3984-4004-abb6-1decfa99c1dd" />
+
+
+---
+
+```bash
+zabbix_get -s 192.168.136.146 -p 10050 -k "agent.version"
+```
+
+<img width="557" height="48" alt="image" src="https://github.com/user-attachments/assets/2ae842e9-9e38-494b-b24b-361e5ca192c8" />
+
+
+---
+
+```bash
+zabbix_get -s 192.168.136.146 -p 10050 -k "system.hostname"
+```
+
+<img width="532" height="44" alt="image" src="https://github.com/user-attachments/assets/866567b2-e963-41d6-8f88-beb27a0b9bfe" />
+
+
+---
+
+```bash
+zabbix_get -s 192.168.136.146 -p 10050 -k "system.uname"
+```
+
+```bash
+zabbix_get -s 192.168.136.146 -p 10050 -k "vm.memory.size[available]"
+```
+<img width="577" height="63" alt="image" src="https://github.com/user-attachments/assets/b550df27-e96a-42ad-a443-d46fa1284d71" />
+
+-----
+
+# Thêm VM2 vào Zabbix Frontend
+
+## 1 Thêm Host
+
+Truy cập trình duyệt:
+
+```text
+http://<IP_ZABBIX_SERVER>/
+```
+
+Đăng nhập Zabbix Frontend.
+
+**Configuration → Hosts → Create host**
+
+### Vào mục quản lý Hosts
+```
+Nhìn sang cột menu màu xanh đậm ở bên trái màn hình.
+Click vào mục Data collection (nằm ngay dưới mục Reports).
+Một menu con sẽ xổ ra, bạn chọn mục Hosts.
+Sau khi vào mục Hosts, nhìn lên góc trên cùng bên phải màn hình, bạn sẽ thấy một nút màu xanh dương có chữ Create host. Hãy click vào đó.
+```
+### Điền thông tin
+```
+Host name: Điền zabbix-agent01 
+Templates: Click vào ô này, gõ tìm từ khóa Linux by Zabbix agent 2 (hoặc Linux by Zabbix agent tùy thuộc vào bản agent bạn cài dưới client) rồi chọn nó.
+Host groups: Click vào, tìm nhóm Linux servers.
+Interfaces: Nhìn ngay bên dưới mục Groups sẽ có phần Interfaces.
+Click vào chữ Add màu xanh -> Chọn Agent.
+Ở ô IP address: Điền IP của máy Client vào (Máy cần được giám sát).
+Ở ô Port: Giữ nguyên là 10050.
+Cuối cùng, cuộn xuống dưới cùng bấm nút Add (Màu xanh dương) để lưu lại là xong!
+```
+<img width="581" height="338" alt="image" src="https://github.com/user-attachments/assets/fd37bb85-0280-49a4-b2c6-1d6a20ed4a2c" />
+
+---
+
+## D.2 Kiểm tra Host đã kết nối
+
+**Data → Hosts**
+
+Kiểm tra cột **Availability**:
+
+```text
+ màu xanh  : Agent kết nối thành công
+ màu đỏ    : Không kết nối được
+ màu xám   : Chưa poll dữ liệu (đợi 1–2 phút)
+```
+
+### Kiểm tra từ Server bằng lệnh
+
+```bash
+sudo zabbix_get -s 192.168.136.146 -p 10050 -k "agent.ping"
+```
+
+Kết quả mong đợi:
+<img width="860" height="79" alt="image" src="https://github.com/user-attachments/assets/91f84486-4d1b-46a5-b5f5-d57927d62fe1" />
+
+---
+
+## D.3 Kiểm tra dữ liệu thu thập
+
+**Monitoring → Latest data**
+````
+Tại ô Hosts: Nhấp Select -> Chọn đúng máy zabbix-agent01.  
+Nhấn nút Apply (hoặc Filter).
+Các thẻ thông tin (Item) cốt lõi cần chú ý:system.cpu.util $\rightarrow$ Tải xử lý của CPU (đơn vị %)
+vm.memory.size[available] (Dung lượng RAM còn trống (đơn vị Bytes))
+vfs.fs.size[/,free] (Dung lượng ổ cứng còn trống tại thư mục gốc /)
+system.uptime(Thời gian máy Client đã hoạt động liên tục kể từ lần bật gần nhất.)
+````
+<img width="944" height="437" alt="image" src="https://github.com/user-attachments/assets/d8edeae0-5f61-4cad-b0aa-6acee0137f66" />
+
+<img width="945" height="440" alt="image" src="https://github.com/user-attachments/assets/3992c592-78cb-4c2f-a69f-e90a9fd3109c" />
+
+### Kiểm tra trực tiếp từ Server
+
+```bash
+sudo zabbix_get -s 192.168.136.146 -p 10050 -k "system.cpu.util"
+```
+
+```bash
+sudo zabbix_get -s 192.168.136.146 -p 10050 -k "vm.memory.size[available]"
+```
+
+```bash
+sudo zabbix_get -s 192.168.136.146 -p 10050 -k "vfs.fs.size[/,free]"
+```
+<img width="619" height="101" alt="image" src="https://github.com/user-attachments/assets/efaba1cc-fe22-4994-a5db-19f393c46226" />
