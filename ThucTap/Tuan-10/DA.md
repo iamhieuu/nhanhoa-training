@@ -1,5 +1,6 @@
 PHẦN A — CHUẨN BỊ VM UBUNTU 22.04
 A.1 — Tạo VM mới trong VMware
+```
 VMware Workstation → Create a New Virtual Machine
 
 ├── Configuration:    Typical
@@ -21,18 +22,23 @@ Trong quá trình cài Ubuntu, chọn:
 │   ├── Name:         ubuntu
 │   ├── Server name:  da-lab
 │   ├── Username:     ubuntu
-│   └── Password:     Ubuntu@2026!
+│   └── Password:     123456a@
 └── SSH:              ✅ Install OpenSSH server
+```
+
 A.2 — Thiết lập sau khi cài Ubuntu
 SSH vào VM từ máy host:
-bashssh ubuntu@192.168.136.11
-# Password: Ubuntu@2026!
+```
+ssh ubuntu@192.168.136.131
+# Password: 123456a@
 
 # Lên quyền root
 sudo -i
 # Hoặc dùng sudo trước mỗi lệnh
+```
 A.3 — Đặt hostname
-bash# Đặt hostname đúng chuẩn FQDN
+```
+# Đặt hostname đúng chuẩn FQDN
 hostnamectl set-hostname da.lab.local
 
 # Xác nhận
@@ -41,29 +47,33 @@ hostname
 
 hostname -f
 # Output: da.lab.local
+```
 A.4 — Cấu hình IP tĩnh
-bash# Xem tên interface
+```
+# Xem tên interface
 ip link show
 # Thường là: ens33
 
 # Xem file netplan hiện tại
 ls /etc/netplan/
-# Output: 00-installer-config.yaml
+# Output: 50-cloud-init.yaml
 
 # Backup file gốc
-cp /etc/netplan/00-installer-config.yaml \
-   /etc/netplan/00-installer-config.yaml.bak
+cp /etc/netplan/50-cloud-init.yaml \
+   /etc/netplan/50-cloud-init.yaml.bak
 
 # Chỉnh sửa cấu hình
-nano /etc/netplan/00-installer-config.yaml
+nano /etc/netplan/50-cloud-init.yaml
+```
 Nội dung file (xóa hết, gõ lại):
+```
 yamlnetwork:
   version: 2
   ethernets:
     ens33:
       dhcp4: false
       addresses:
-        - 192.168.136.11/24
+        - 192.168.136.131/24
       nameservers:
         addresses:
           - 8.8.8.8
@@ -71,26 +81,33 @@ yamlnetwork:
       routes:
         - to: default
           via: 192.168.136.2
-bash# Apply cấu hình
+```
+
+```
+# Apply cấu hình
 netplan apply
 
 # Kiểm tra IP
 ip addr show ens33
-# Phải thấy: inet 192.168.136.11/24
+# Phải thấy: inet 192.168.136.131/24
 
 # Test internet
 ping -c 3 8.8.8.8
 ping -c 3 google.com
+```
 A.5 — Cập nhật /etc/hosts
-bash# Thêm entry hostname
+```
+# Thêm entry hostname
 cat >> /etc/hosts << 'EOF'
-192.168.136.11  da.lab.local da
+192.168.136.131  da.lab.local da
 EOF
 
 # Kiểm tra
 cat /etc/hosts
+```
 A.6 — Cập nhật hệ thống
-bash# Update packages
+```
+# Update packages
 apt update && apt upgrade -y
 
 # Cài các tool cần thiết
@@ -99,9 +116,11 @@ apt install -y curl wget git net-tools \
 
 # Kiểm tra OS
 lsb_release -a
-# Output: Ubuntu 22.04.x LTS
+# Output: Ubuntu 22.04.5 LTS
+```
 A.7 — Tắt AppArmor (tránh conflict với DA)
-bash# Tắt AppArmor
+```
+# Tắt AppArmor
 systemctl stop apparmor
 systemctl disable apparmor
 
@@ -109,9 +128,11 @@ systemctl disable apparmor
 systemctl status apparmor
 # Output: inactive (dead)
 
+```
 PHẦN B — CÀI ĐẶT DIRECTADMIN
 B.1 — Tải script cài đặt DA
-bash# Chuyển về /root
+```
+# Chuyển về /root
 cd /root
 
 # Tải script cài đặt chính thức
@@ -124,8 +145,10 @@ ls -lh setup.sh
 
 # Cấp quyền thực thi
 chmod +x setup.sh
+```
 B.2 — Chạy cài đặt DirectAdmin
-bash# Chạy cài đặt với tùy chọn:
+```
+# Chạy cài đặt với tùy chọn:
 # auto   = tự động, không hỏi nhiều
 # --hostname = FQDN của server
 # --email    = email admin
@@ -153,9 +176,11 @@ OS detected:        Ubuntu 22.04  (tự nhận diện)
 Web server:         Apache        ← Chọn 1
 PHP version:        8.2           ← Chọn phiên bản mới nhất
 Database:           MariaDB 10.6  ← Chọn 1
+```
 B.3 — Theo dõi quá trình cài
 Mở terminal thứ 2, SSH vào và chạy:
-bash# Xem log real-time
+```
+# Xem log real-time
 tail -f /var/log/directadmin-setup.log
 
 # Hoặc xem tiến trình
@@ -174,11 +199,13 @@ Các giai đoạn cài đặt:
 [10/10] Final configuration...            ✅
 
 DirectAdmin installation complete!
-Login: https://192.168.136.11:2222
+Login: https://192.168.136.131:2222
 Username: admin
 Password: Admin@DA2026!
+```
 B.4 — Xác nhận cài đặt thành công
-bash# Kiểm tra service DA đang chạy
+```
+# Kiểm tra service DA đang chạy
 systemctl status directadmin
 # Phải thấy: Active (running)
 
@@ -193,24 +220,30 @@ LISTEN  0  128  0.0.0.0:143   → Dovecot IMAP
 LISTEN  0  128  0.0.0.0:993   → Dovecot IMAPS
 LISTEN  0  128  0.0.0.0:21    → ProFTPD
 LISTEN  0  128  0.0.0.0:53    → BIND DNS
-bash# Kiểm tra phiên bản DA
+```
+```
+# Kiểm tra phiên bản DA
 /usr/local/directadmin/directadmin version
 # Output: DirectAdmin x.xx.x
 
 # Kiểm tra tất cả services
 /usr/local/directadmin/scripts/check_services.sh
 
+```
 PHẦN C — ĐĂNG NHẬP VÀ CẤU HÌNH BAN ĐẦU
 C.1 — Đăng nhập DA Panel
 Truy cập từ trình duyệt máy host:
-https://192.168.136.11:2222
+```
+https://192.168.136.131:2222
 
 Username: admin
 Password: Admin@DA2026!
 
 ⚠️ Bỏ qua cảnh báo SSL (cert tự ký)
-   Chrome: Advanced → Proceed to 192.168.136.11
+   Chrome: Advanced → Proceed to 192.168.136.131
+```
 C.2 — Giao diện DA — 3 cấp truy cập
+```
 ┌─────────────────────────────────────────────────────┐
 │              DIRECTADMIN — 3 CẤP                    │
 ├─────────────────────────────────────────────────────┤
@@ -218,7 +251,7 @@ C.2 — Giao diện DA — 3 cấp truy cập
 │  CẤP 1: ADMIN (Giống Root WHM của cPanel)           │
 │  ├── Login: admin / Admin@DA2026!                   │
 │  ├── Quản lý toàn server                           │
-│  └── URL: https://192.168.136.11:2222               │
+│  └── URL: https://192.168.136.131:2222               │
 │                                                     │
 │  CẤP 2: RESELLER                                    │
 │  ├── Do Admin tạo ra                               │
@@ -228,12 +261,14 @@ C.2 — Giao diện DA — 3 cấp truy cập
 │  CẤP 3: USER (Giống cPanel User)                    │
 │  ├── Do Reseller hoặc Admin tạo                    │
 │  ├── Quản lý website, email, DB của mình           │
-│  └── URL: https://192.168.136.11:2222               │
+│  └── URL: https://192.168.136.131:2222               │
 │                                                     │
 │  ⚠️ DA dùng CÙNG PORT 2222 cho cả 3 cấp            │
 │     Phân biệt bằng username khi login              │
 └─────────────────────────────────────────────────────┘
+```
 C.3 — Cấu hình Admin ban đầu
+```
 Sau khi đăng nhập Admin:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BƯỚC 1: Đổi mật khẩu Admin
@@ -257,8 +292,10 @@ Admin Panel → Admin Settings → License
 → Xem ngày hết hạn Trial
 → IP đăng ký license
 
+```
 PHẦN D — TẠO RESELLER VÀ USER
 D.1 — Tạo Reseller Package
+```
 Admin Panel → Reseller Management
 → Add Reseller Package
 
@@ -275,7 +312,9 @@ FTP Accounts:     100
 MySQL Databases:  100
 MySQL Users:      200
 → Save
+```
 D.2 — Tạo Reseller Account
+```
 Admin Panel → Reseller Management → Add Reseller
 
 Username:    reseller1
@@ -283,9 +322,11 @@ Email:       reseller1@da.lab.local
 Password:    Reseller@2026!
 Domain:      reseller1.local
 Package:     nh-reseller
-IP:          192.168.136.11   (Shared IP)
+IP:          192.168.136.131   (Shared IP)
 → Add
+```
 D.3 — Tạo User Package
+```
 Admin Panel → Reseller Management → Add Package
 (Hoặc login bằng reseller1 → Add Package)
 
@@ -298,7 +339,9 @@ Sub-domains:      5
 Email Accounts:   10
 MySQL Databases:  5
 → Save
+```
 D.4 — Tạo User Account
+```
 Admin Panel → User Management → Add User
 (Hoặc login reseller1 → Add User)
 
@@ -319,9 +362,11 @@ ls -la /home/user001/
 
 # Xem domain của user
 ls /home/user001/domains/
+```
 # Output: khachhang1.local/
 D.5 — Cấu trúc thư mục DA
-bash# Cấu trúc thư mục DA khác cPanel
+```
+# Cấu trúc thư mục DA khác cPanel
 ls /home/user001/domains/khachhang1.local/
 
 /home/user001/domains/khachhang1.local/
@@ -334,11 +379,13 @@ ls /home/user001/domains/khachhang1.local/
 # ⚠️ KHÁC cPanel:
 # cPanel: /home/username/public_html/
 # DA:     /home/username/domains/domain.com/public_html/
+```
 
 PHẦN E — CUSTOMBUILD 2.0
 CustomBuild là công cụ của DA để cài/update Apache, PHP, MariaDB.
 E.1 — Kiểm tra CustomBuild
-bash# Thư mục CustomBuild
+```
+# Thư mục CustomBuild
 ls /usr/local/directadmin/custombuild/
 
 # Xem version
@@ -363,9 +410,11 @@ mysql_ver=10.6
 exim=yes
 dovecot=yes
 spamassassin=yes
+```
 E.2 — Cài thêm PHP version (Multi-PHP)
 DirectAdmin hỗ trợ chạy nhiều version PHP cùng lúc:
-bashcd /usr/local/directadmin/custombuild
+```
+cd /usr/local/directadmin/custombuild
 
 # Xem PHP versions có thể cài
 ./build versions php
@@ -382,8 +431,10 @@ php8.2 -v
 # Trong DA User Panel:
 # → Domain Setup → PHP Version
 # → Chọn 8.1 hoặc 8.2 per domain
+```
 E.3 — Cập nhật services qua CustomBuild
-bashcd /usr/local/directadmin/custombuild
+```
+cd /usr/local/directadmin/custombuild
 
 # Update Apache
 ./build apache
@@ -401,12 +452,16 @@ bashcd /usr/local/directadmin/custombuild
 # Xem trạng thái services
 ./build versions
 
+```
 PHẦN F — QUẢN LÝ QUA DA USER PANEL
 Đăng nhập bằng user001:
-https://192.168.136.11:2222
+```
+https://192.168.136.131:2222
 Username: user001
 Password: User@2026!
+```
 F.1 — Các tính năng chính DA User Panel
+```
 DA USER PANEL
 │
 ├── 📁 Files
@@ -437,22 +492,28 @@ DA USER PANEL
 └── 📊 Statistics
     ├── Site Statistics   ← Awstats
     └── Resource Usage    ← CPU/RAM/Disk
+```
 F.2 — Tạo Database trong DA
+```
 User Panel → MySQL Management → Create Database
 
 Database Name:   khach001_wp
 Database User:   khach001_wpuser
 Password:        DbPass@2026!
 → Create
+```
 
 # Username thực tế sẽ là: user001_khach001_wp
 # DA tự thêm prefix username vào DB name
-bash# Kiểm tra qua CLI
+```
+# Kiểm tra qua CLI
 mysql -u root -p -e "SHOW DATABASES LIKE 'user001%';"
 mysql -u root -p -e "SELECT user FROM mysql.user \
   WHERE user LIKE 'user001%';"
+```
 F.3 — Cài WordPress qua Softaculous
 DA tích hợp Softaculous để auto-install WordPress:
+```
 User Panel → Extra Features → Softaculous
 
 → WordPress → Install Now
@@ -470,10 +531,12 @@ Language:        Vietnamese
 # - Upload WordPress files
 # - Cấu hình wp-config.php
 # - Cài đặt WordPress hoàn toàn tự động
+```
 
 PHẦN G — CẤU HÌNH BẢO MẬT CƠ BẢN
 G.1 — Đổi port SSH
-bash# Đổi SSH port từ 22 → 2223 (tránh scan)
+```
+# Đổi SSH port từ 22 → 2223 (tránh scan)
 nano /etc/ssh/sshd_config
 
 # Tìm dòng: #Port 22
@@ -484,9 +547,11 @@ Port 2223
 systemctl restart sshd
 
 # Test kết nối port mới (mở terminal mới trước)
-ssh -p 2223 ubuntu@192.168.136.11
+ssh -p 2223 ubuntu@192.168.136.131
+```
 G.2 — Cấu hình Firewall (UFW)
-bash# Bật UFW
+```
+# Bật UFW
 ufw enable
 
 # Các ports cần mở cho DA
@@ -507,8 +572,10 @@ ufw allow 53/udp    comment 'DNS UDP'
 
 # Xem rules
 ufw status verbose
+```
 G.3 — Brute Force Protection
-bash# DA có built-in Brute Force Monitor
+```
+# DA có built-in Brute Force Monitor
 # Kiểm tra cấu hình
 cat /usr/local/directadmin/conf/brute.conf
 
@@ -520,9 +587,11 @@ echo "192.168.1.100" >> /etc/hosts.deny
 
 # Unblock IP bị block nhầm
 /usr/local/directadmin/scripts/unblock_ip.sh 192.168.1.100
+```
 
 PHẦN H — KIỂM TRA TOÀN BỘ SAU CÀI ĐẶT
-bash# ── Checklist đầy đủ ───────────────────────────────
+```
+# ── Checklist đầy đủ ───────────────────────────────
 
 # 1. DirectAdmin service
 systemctl is-active directadmin
@@ -530,7 +599,7 @@ systemctl is-active directadmin
 
 # 2. Web server
 systemctl is-active apache2
-curl -I http://192.168.136.11
+curl -I http://192.168.136.131
 # ✅ HTTP/1.1 200 OK
 
 # 3. Database
@@ -545,7 +614,7 @@ systemctl is-active dovecot
 
 # 5. DNS
 systemctl is-active named
-dig @192.168.136.11 khachhang1.local
+dig @192.168.136.131 khachhang1.local
 # ✅ Có response
 
 # 6. FTP
@@ -554,13 +623,14 @@ ss -tlnp | grep 21
 # ✅ Port 21 listening
 
 # 7. DA Panel accessible
-curl -k -I https://192.168.136.11:2222
+curl -k -I https://192.168.136.131:2222
 # ✅ HTTP/1.1 200 OK
 
 # 8. User home directory
 ls /home/user001/domains/khachhang1.local/public_html/
 # ✅ Thư mục tồn tại
 
+```
 PHẦN I — TROUBLESHOOTING PHỔ BIẾN
 Lỗi 1: DA service không start
 bash# Xem log lỗi
