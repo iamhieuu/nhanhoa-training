@@ -9,15 +9,14 @@ Sơ đồ mô hình Lab:
 │  ┌──────────────────────┐   ┌────────────────┐  │
 │  │  zabbix-server       │   │  zabbix-agent  │  │
 │  │  Ubuntu 22.04        │   │  Ubuntu 22.04  │  │
-│  │  192.168.136.131     │   │  192.168.136.146 │  │
+│  │  192.168.136.131     │   │ 192.168.136.146│  │
 │  │  RAM: 4GB, Disk: 40G │   │  RAM: 1GB      │  │
 │  └──────────────────────┘   └────────────────┘  │
 │                                                 │
-│  Host-only Network: 192.168.56.0/24             │
 └─────────────────────────────────────────────────┘
 ```
 
-A.1 Thiết lập hostname và IP tĩnh
+1 Thiết lập hostname và IP tĩnh
 Tất cả lệnh dưới đây thực hiện trên VM1 — 192.168.136.131
 
 ```
@@ -663,4 +662,575 @@ Khi Node1 bị down:
   [Node2] phát hiện → tự promote thành ACTIVE
   [Node2 - ACTIVE]  ←── tiếp tục toàn bộ monitoring
 ```
+# 1. Cài đặt trên máy backup
+### 1.2 Cập nhật hệ thống VM2
+ 
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+ 
+---
+ 
+### 1.3 Cài đặt Zabbix 7.0 repository trên VM2
+ 
+```bash
+# Tải Zabbix 7.0 LTS repository
+wget https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_7.0-2+ubuntu22.04_all.deb
+ 
+# Cài đặt repository
+sudo dpkg -i zabbix-release_7.0-2+ubuntu22.04_all.deb
+ 
+# Cập nhật package list
+sudo apt update
+```
+ 
+---
+ 
+### 1.4 Cài đặt Zabbix Server trên VM2
+ 
+```bash
+# Cài Zabbix Server (dùng MySQL vì dùng chung MariaDB với Node1)
+# Không cài frontend, không cài MariaDB (dùng chung DB của Node1)
+sudo apt install -y \
+  zabbix-server-mysql \
+  zabbix-agent2
+ 
+# Xác nhận đã cài
+sudo dpkg -l | grep zabbix | awk '{print $2, $3}'
+```
+ <img width="481" height="74" alt="image" src="https://github.com/user-attachments/assets/ee2f7be3-1365-41d9-873a-55f0b423b15d" />
 
+ 
+---
+ 
+## Phần 2 — Cho phép Node2 kết nối vào Database của Node1
+ 
+> Thực hiện trên **VM1** (192.168.136.131) — nơi có MariaDB.
+ 
+### 2.1 Tạo user cho Node2 kết nối từ xa
+ 
+```bash
+# Đăng nhập MariaDB trên VM1
+sudo mysql -u root -p'123456a@'
+```
+ 
+Chạy các lệnh SQL trong MariaDB prompt:
+ 
+```sql
+-- Tạo user cho phép Node2 kết nối từ IP của Node2
+CREATE USER 'zabbix'@'192.168.136.145' IDENTIFIED BY 'Zabbix@DB2026!';
+ 
+GRANT ALL PRIVILEGES ON zabbix.* TO 'zabbix'@'192.168.136.145';
+ 
+FLUSH PRIVILEGES;
+ 
+EXIT;
+```
+ 
+Kiểm tra user đã tạo:
+ 
+```bash
+sudo mysql -u root -p'123456a@' \
+  -e "SELECT user, host FROM mysql.user WHERE user='zabbix';"
+```
+ 
+<img width="395" height="114" alt="image" src="https://github.com/user-attachments/assets/992b0ebf-b812-4f97-b79a-c611b7c0d2da" />
+ 
+---
+ 
+### 2.2 Cho phép MariaDB lắng nghe từ bên ngoài
+ 
+Mặc định MariaDB chỉ lắng nghe trên `127.0.0.1`. Cần cho phép Node2 kết nối vào:
+ 
+```bash
+# Trên VM1
+sudo nano /etc/mysql/mariadb.conf.d/50-server.cnf
+```
+ 
+Tìm dòng `bind-address` và sửa:
+ 
+```ini
+# Tìm dòng này:
+bind-address = 127.0.0.1
+ 
+# Sửa thành (lắng nghe tất cả interface):
+bind-address = 0.0.0.0
+```
+ 
+Lưu file và restart MariaDB:
+ 
+```bash
+sudo systemctl restart mariadb
+ 
+# Kiểm tra MariaDB đang lắng nghe port 3306
+sudo ss -tlnp | grep 3306
+```
+ 
+<img width="665" height="60" alt="image" src="https://github.com/user-attachments/assets/cd50cd30-5a3d-48c1-98da-6bce3560c261" />
+
+---
+ 
+### 2.3 Mở firewall port 3306 trên VM1
+ 
+```bash
+# Trên VM1 — cho phép Node2 kết nối vào MariaDB
+sudo ufw allow from 192.168.136.145 to any port 3306 comment 'Zabbix Node2 to DB'
+ 
+sudo ufw reload
+sudo ufw status
+```
+<img width="572" height="184" alt="image" src="https://github.com/user-attachments/assets/7bd1fa14-4db3-479c-b312-4bdffd8b5f75" />
+ 
+---
+ 
+### 2.4 Kiểm tra kết nối từ Node2 vào DB của Node1
+ 
+```bash
+# Trên VM2 — test kết nối vào MariaDB của VM1
+mysql -h 192.168.136.131 -u zabbix -p'Zabbix@DB2026!' \
+  -e "SELECT COUNT(*) AS hosts FROM zabbix.hosts;"
+```
+ 
+<img width="921" height="197" alt="image" src="https://github.com/user-attachments/assets/bd52c7c5-4472-472b-a626-5d84967808c3" />
+ 
+---
+ 
+## Phần 3 — Cấu hình HA trên Node1
+ 
+> Thực hiện trên **VM1** (192.168.136.131).
+ 
+### 3.1 Chỉnh sửa cấu hình Zabbix Server Node1
+ 
+```bash
+# Backup file cấu hình hiện tại
+sudo cp /etc/zabbix/zabbix_server.conf /etc/zabbix/zabbix_server.conf.bak_ha
+ 
+# Mở file cấu hình
+sudo nano /etc/zabbix/zabbix_server.conf
+```
+ 
+Tìm và chỉnh sửa (dùng `Ctrl+W` để tìm trong nano):
+ 
+```ini
+# Tìm dòng: # HANodeName=
+# Bỏ dấu # và điền tên node:
+HANodeName=zabbix-node1
+ 
+# Tìm dòng: # NodeAddress=
+# Bỏ dấu # và điền địa chỉ của node này:
+NodeAddress=192.168.136.131:10051
+```
+<img width="291" height="182" alt="image" src="https://github.com/user-attachments/assets/73a68aae-8119-4e3b-b004-c58c326e5911" />
+
+---
+ 
+### 3.2 Restart Zabbix Server Node1
+ 
+```bash
+sudo systemctl restart zabbix-server
+ 
+# Kiểm tra không có lỗi
+sudo systemctl status zabbix-server
+```
+ 
+Kiểm tra log — Node1 phải khởi động ở chế độ **active**:
+ 
+```bash
+sudo tail -20 /var/log/zabbix/zabbix_server.log | grep -i "ha\|active\|standby\|node"
+```
+ 
+Kết quả mong đợi:
+ 
+<img width="698" height="52" alt="image" src="https://github.com/user-attachments/assets/394b8e91-075a-4798-9fbf-c8e1402736c0" />
+
+ 
+---
+ 
+## Phần 4 — Cấu hình HA trên Node2
+ 
+> Thực hiện trên **VM2** (192.168.136.145).
+ 
+### 4.1 Chỉnh sửa cấu hình Zabbix Server Node2
+ 
+```bash
+# Backup
+sudo cp /etc/zabbix/zabbix_server.conf /etc/zabbix/zabbix_server.conf.bak
+ 
+# Mở file cấu hình
+sudo nano /etc/zabbix/zabbix_server.conf
+```
+ 
+Tìm và sửa các dòng sau:
+ 
+**Phần Database — trỏ vào DB của Node1:**
+ 
+```ini
+# Tìm dòng: DBHost=localhost
+# Sửa thành IP của Node1 (nơi có MariaDB):
+DBHost=192.168.136.131
+ 
+# Tìm dòng: # DBPassword=
+# Sửa thành:
+DBPassword=Zabbix@DB2026!
+ 
+# Tìm dòng: DBSocket=
+# Comment lại dòng này (Node2 kết nối qua TCP/IP không phải socket)
+# DBSocket=/var/run/mysqld/mysqld.sock
+```
+ 
+**Phần HA:**
+ 
+```ini
+# Tìm dòng: # HANodeName=
+# Sửa thành:
+HANodeName=zabbix-node2
+ 
+# Tìm dòng: # NodeAddress=
+# Sửa thành:
+NodeAddress=192.168.136.145:10051
+```
+---
+ 
+### 4.2 Cấu hình Zabbix Agent2 trên Node2 (tự giám sát)
+ 
+```bash
+sudo nano /etc/zabbix/zabbix_agent2.conf
+```
+ 
+Tìm và sửa:
+ 
+```ini
+Server=192.168.136.131
+ 
+ServerActive=192.168.136.131
+ 
+Hostname=zabbix-node2
+```
+ 
+Lưu file.
+ 
+---
+ 
+### 4.3 Khởi động dịch vụ trên Node2
+ 
+```bash
+# Khởi động Zabbix Server
+sudo systemctl start zabbix-server
+sudo systemctl enable zabbix-server
+ 
+# Khởi động Agent2
+sudo systemctl start zabbix-agent2
+sudo systemctl enable zabbix-agent2
+ 
+# Kiểm tra trạng thái
+sudo systemctl status zabbix-server
+sudo systemctl status zabbix-agent2
+```
+ 
+Kiểm tra log — Node2 phải khởi động ở chế độ **standby**:
+ 
+```bash
+sudo tail -20 /var/log/zabbix/zabbix_server.log | grep -i "ha\|active\|standby\|node"
+```
+ 
+<img width="673" height="101" alt="image" src="https://github.com/user-attachments/assets/28649b2b-8348-4171-8a7e-e771412b91a9" />
+
+ 
+---
+ 
+### 4.4 Mở firewall trên Node2
+ 
+```bash
+sudo ufw allow 10051/tcp comment 'Zabbix Server trapper'
+sudo ufw allow 10050/tcp comment 'Zabbix Agent'
+sudo ufw allow 22/tcp    comment 'SSH'
+ 
+sudo ufw reload
+sudo ufw status
+```
+ <img width="570" height="276" alt="image" src="https://github.com/user-attachments/assets/e87e4727-a5bb-4c7d-a90d-617d2ccf896b" />
+
+---
+ 
+## Phần 5 — Kiểm tra HA hoạt động trên GUI
+ 
+### 5.1 Đăng nhập Zabbix Frontend
+ 
+```
+http://192.168.136.131/
+```
+ 
+Đăng nhập với tài khoản Admin.
+ 
+---
+ 
+### 5.2 Xem trạng thái HA Nodes
+ 
+Trên menu bên trái, vào:
+ 
+```
+Reports  →System information → High availability ở cuối
+```
+ 
+Màn hình hiển thị danh sách nodes:
+ 
+<img width="959" height="437" alt="image" src="https://github.com/user-attachments/assets/f8e065b3-734e-42bb-aa8d-9893881c11df" />
+
+ 
+---
+ 
+### 5.3 Kiểm tra qua lệnh trực tiếp trên database
+ 
+```bash
+# Trên VM1
+sudo mysql -u root -p'123456a@' zabbix -e "
+SELECT name,
+       status,
+       FROM_UNIXTIME(lastaccess) AS last_seen
+FROM ha_node
+ORDER BY status;"
+```
+ 
+<img width="440" height="201" alt="image" src="https://github.com/user-attachments/assets/28f8c808-61d6-4a56-ab2d-7489feb0f690" />
+
+ 
+---
+ 
+## Phần 6 — Test Failover (Chuyển đổi dự phòng)
+ 
+Đây là bước quan trọng nhất — kiểm tra HA thực sự hoạt động.
+ 
+### 6.1 Chuẩn bị — mở 2 terminal song song
+ 
+**Terminal 1** — Theo dõi log Node2 (VM2):
+ 
+```bash
+# SSH vào VM2
+ssh apache1@192.168.136.145
+ 
+# Theo dõi log real-time
+sudo tail -f /var/log/zabbix/zabbix_server.log | grep -i "ha\|active\|standby\|failover\|node"
+```
+ 
+**Terminal 2** — Thực hiện test trên Node1 (VM1):
+ 
+```bash
+# SSH vào VM1
+ssh iamhieu@192.168.136.131
+```
+ 
+---
+ 
+### 6.2 Dừng Zabbix Server trên Node1 (giả lập sự cố)
+ 
+Trên **Terminal 2 (VM1)**:
+ 
+```bash
+# Dừng Zabbix Server Node1
+sudo systemctl stop zabbix-server
+ 
+# Xác nhận đã dừng
+sudo systemctl status zabbix-server
+# Phải thấy: Active: inactive (dead)
+```
+ 
+---
+ 
+### 6.3 Quan sát Node2 tự động promote
+ 
+sau khoảng **30 giây**, sẽ thấy log:  
+
+<img width="776" height="106" alt="image" src="https://github.com/user-attachments/assets/ec93e7de-1d34-470b-88b8-68e31beb19a1" />
+
+ 
+---
+ 
+### 6.4 Xác nhận Node2 đã trở thành Active
+ 
+Kiểm tra trên GUI (`Administration → High availability`):
+ 
+<img width="950" height="438" alt="image" src="https://github.com/user-attachments/assets/630d47a0-9414-41b6-ae06-125f2f099c54" />
+
+
+
+ 
+Kiểm tra monitoring vẫn tiếp tục — vào `Monitoring → Latest data` trên GUI, dữ liệu vẫn cập nhật bình thường.
+ 
+---
+ 
+### 6.5 Khôi phục Node1 và quan sát
+ 
+Trên **Terminal 2 (VM1)**:
+ 
+```bash
+# Khởi động lại Zabbix Server Node1
+sudo systemctl start zabbix-server
+```
+ 
+Sau vài giây, kiểm tra log Node1:
+ 
+```bash
+sudo tail -20 /var/log/zabbix/zabbix_server.log | grep -i "ha\|active\|standby"
+```
+ 
+<img width="648" height="81" alt="image" src="https://github.com/user-attachments/assets/417baa72-afde-4f86-803b-7dc5277481df" />
+
+ 
+Node1 **tự nhận biết Node2 đang active** và tự chuyển sang **standby** — không xảy ra xung đột.
+ 
+Kiểm tra GUI:
+ 
+<img width="857" height="78" alt="image" src="https://github.com/user-attachments/assets/41aaf88e-c916-4062-a956-ae94ac2b5739" />
+
+ 
+---
+ 
+
+ 
+## Phần 7 — Cấu hình Web Frontend kết nối cả 2 Node
+ 
+Mặc định, Web Frontend đang cấu hình kết nối đến `127.0.0.1:10051` (chỉ Node1). Cần cho phép Frontend biết về cả 2 nodes để khi Node1 down, Frontend vẫn hoạt động.
+ 
+### 7.1 Sửa file cấu hình Frontend
+ 
+```bash
+# Trên VM1
+sudo nano /etc/zabbix/web/zabbix.conf.php
+```
+ 
+Tìm các dòng liên quan đến server:
+ 
+```php
+// Tìm:
+$ZBX_SERVER      = 'localhost';
+$ZBX_SERVER_PORT = '10051';
+ 
+// Sửa thành (kết nối đến Node1, dùng IP thay vì localhost):
+$ZBX_SERVER      = '192.168.136.131';
+$ZBX_SERVER_PORT = '10051';
+```
+ 
+Lưu file.
+ 
+---
+ 
+### 7.2 Cài đặt Web Frontend trên Node2 (tuỳ chọn — để Frontend HA)
+ 
+Nếu muốn Web Frontend cũng dự phòng (không bắt buộc cho lab cơ bản):
+ 
+```bash
+# Trên VM2
+sudo apt install -y \
+  zabbix-frontend-php \
+  zabbix-nginx-conf
+ 
+# Cấu hình Nginx
+sudo nano /etc/zabbix/nginx.conf
+```
+ 
+Sửa:
+ 
+```nginx
+listen          80;
+server_name     192.168.136.145;
+```
+ 
+```bash
+sudo rm -f /etc/nginx/sites-enabled/default
+ 
+# Cấu hình PHP timezone
+sudo nano /etc/zabbix/php-fpm.conf
+# Sửa: php_value[date.timezone] = Asia/Ho_Chi_Minh
+```
+ 
+Tạo file cấu hình Frontend:
+ 
+```bash
+sudo cp /etc/zabbix/web/zabbix.conf.php.example \
+        /etc/zabbix/web/zabbix.conf.php 2>/dev/null || true
+ 
+sudo nano /etc/zabbix/web/zabbix.conf.php
+```
+ 
+Điền thông tin kết nối database và server:
+ 
+```php
+<?php
+$DB['TYPE']               = 'MYSQL';
+$DB['SERVER']             = '192.168.136.131';
+$DB['PORT']               = '3306';
+$DB['DATABASE']           = 'zabbix';
+$DB['USER']               = 'zabbix';
+$DB['PASSWORD']           = 'Zabbix@DB2026!';
+$DB['SCHEMA']             = '';
+$DB['ENCRYPTION']         = false;
+$DB['KEY_FILE']           = '';
+$DB['CERT_FILE']          = '';
+$DB['CA_FILE']            = '';
+$DB['VERIFY_HOST']        = false;
+$DB['CIPHER_LIST']        = '';
+$DB['VAULT_URL']          = '';
+$DB['VAULT_DB_PATH']      = '';
+$DB['VAULT_TOKEN']        = '';
+$DB['VAULT_CERT_FILE']    = '';
+$DB['VAULT_KEY_FILE']     = '';
+$ZBX_SERVER               = '192.168.136.145';
+$ZBX_SERVER_PORT          = '10051';
+$ZBX_SERVER_NAME          = 'My Zabbix Lab';
+$IMAGE_FORMAT_DEFAULT     = IMAGE_FORMAT_PNG;
+```
+ 
+```bash
+sudo systemctl start nginx php8.1-fpm
+sudo systemctl enable nginx php8.1-fpm
+```
+ 
+Sau bước này, truy cập Frontend qua cả 2 địa chỉ:
+- `http://192.168.136.131/` — Node1
+- `http://192.168.136.145/` — Node2
+---
+ 
+## Phần 8 — Thêm Node2 vào Zabbix để giám sát
+ 
+### 8.1 Thêm Host zabbix-node2 vào Zabbix Frontend
+ 
+Đăng nhập vào GUI → `Data collection → Hosts → Create host`
+ 
+**Tab: Host**
+ 
+```
+Host name:     zabbix-node2
+Visible name:  Zabbix Server Node2 (Standby)
+Templates:     Linux by Zabbix agent 2
+Host groups:   Zabbix servers
+```
+ 
+**Interfaces:**
+ 
+```
+Loại:     Agent
+IP:       192.168.136.145
+Port:     10050
+```
+ <img width="590" height="338" alt="image" src="https://github.com/user-attachments/assets/8f123878-32d7-4dc8-8c44-504d5d12871d" />
+
+---
+ 
+### 8.2 Kiểm tra Agent Node2 kết nối
+ 
+Sau 1–2 phút, vào `Data collection → Hosts` → kiểm tra cột **Availability** của `zabbix-node2`:
+ 
+- 🟢 Màu xanh = kết nối thành công
+Kiểm tra bằng lệnh từ Node1:
+ 
+```bash
+# Trên VM1
+sudo zabbix_get -s 192.168.136.145 -p 10050 -k "agent.ping"
+
+```
+ <img width="563" height="41" alt="image" src="https://github.com/user-attachments/assets/565ae96a-bc01-4f73-aef0-09dbd49cd2db" />
+
+---
+<img width="959" height="470" alt="image" src="https://github.com/user-attachments/assets/cc6cd804-d731-4675-860f-f98ce01cd2bd" />
+
+### Hoàn thiện HA cho zabbix
