@@ -109,23 +109,8 @@ ls -lh latest
 
 # Chạy cài đặt — BẮT ĐẦU TỪ ĐÂY SẼ MẤT 30-60 PHÚT
 sh latest
-
-💡 Trong khi chờ cài đặt, bạn sẽ thấy output như sau:
-
-    _______ _____    _____                      _
-   /  ____/|  __ \  / ____|                    | |
-  /  /     | |__) || |     _ __   __ _ _ __   ___ | |
- /  /      |  ___/ | |    | '_ \ / _` | '_ \ / _ \| |
-/  /____   | |     | |____| |_) | (_| | | | |  __/| |
-\______/   |_|      \_____| .__/ \__,_|_| |_|\___||_|
-                           | |
-                           |_|
-
-  Installation has started!
-  
-  You may monitor the installation using:
-  tail -f /var/log/cpanel-install.log
 ```
+
 B.2 — Theo dõi quá trình cài đặt
 Mở terminal thứ 2, SSH vào server và chạy:
 ```
@@ -148,7 +133,10 @@ B.3 — Xác nhận cài đặt thành công
 ```
 # Khi log hiện dòng này là xong:
 # "Thank you for installing cPanel & WHM!"
+```
+<img width="890" height="212" alt="image" src="https://github.com/user-attachments/assets/79e8ac1f-0a04-4e27-a9b1-5a226208433d" />
 
+```
 # Kiểm tra các service cPanel đang chạy
 systemctl status cpanel
 # Phải thấy: Active (running)
@@ -163,16 +151,21 @@ LISTEN  0  128  0.0.0.0:2087  → WHM SSL
 LISTEN  0  128  0.0.0.0:2086  → cPanel non-SSL
 LISTEN  0  128  0.0.0.0:2082  → WHM non-SSL
 ```
+<img width="922" height="265" alt="image" src="https://github.com/user-attachments/assets/6d63a7bc-7336-4f7a-8216-33db7b1ef7c6" />
+
+
 PHẦN C — CẤU HÌNH BAN ĐẦU WHM
 C.1 — Đăng nhập WHM lần đầu
 ```
 Truy cập từ máy host (trình duyệt):
-http://192.168.136.148:2086
-hoặc
-https://192.168.136.148:2087 (bỏ qua cảnh báo SSL)
 
+https://192.168.136.148:2087 (bỏ qua cảnh báo SSL)
+```
+<img width="956" height="466" alt="image" src="https://github.com/user-attachments/assets/942765f4-efa8-431c-8bb1-a80d4f1742cd" />
+
+```
 Username: root
-Password: [mật khẩu root của VM]
+Password: 123456a@
 ```
 C.2 — WHM Initial Setup Wizard
 Khi đăng nhập lần đầu, WHM sẽ hiện Setup Wizard gồm 5 bước:  
@@ -200,10 +193,13 @@ BƯỚC 5 — Database
 ├── MySQL/MariaDB: MariaDB 10.6 (default)
 └── Click "Finish"
 ```
+<img width="955" height="445" alt="image" src="https://github.com/user-attachments/assets/5efd9924-68b2-4fe0-abf0-a4db6aece68d" />
+
 C.3 — Cấu hình thiết yếu sau Setup Wizard
-```
+
 Kích hoạt Trial License
-bash# Chạy lệnh này trên server để kích hoạt trial 15 ngày
+```
+# Chạy lệnh này trên server để kích hoạt trial 15 ngày
 /usr/local/cpanel/cpkeyclt
 Cấu hình Firewall cơ bản trong WHM
 WHM → Plugins → ConfigServer Security & Firewall (CSF)
