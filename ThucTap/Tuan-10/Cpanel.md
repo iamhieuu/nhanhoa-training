@@ -20,7 +20,7 @@ A.2 — Cấu hình IP tĩnh
 ```
 # Xem tên interface
 ip link show
-# Thường là: ens33 hoặc eth0
+# Thường là: ens160 hoặc eth0
 
 # Xem file cấu hình network hiện tại
 ls /etc/NetworkManager/system-connections/
@@ -30,18 +30,18 @@ Chỉnh sửa file cấu hình:
 # Tìm đúng tên file (thường là tên interface)
 nmcli connection show
 
-# Sửa IP tĩnh qua nmcli (thay ens33 bằng tên interface thực tế)
-nmcli connection modify ens33 \
+# Sửa IP tĩnh qua nmcli (thay ens160 bằng tên interface thực tế)
+nmcli connection modify ens160 \
   ipv4.method manual \
   ipv4.addresses 192.168.136.148/24 \
   ipv4.gateway 192.168.136.2 \
   ipv4.dns "8.8.8.8,8.8.4.4"
 
 # Áp dụng
-nmcli connection up ens33
+nmcli connection up ens160
 
 # Kiểm tra
-ip addr show ens33
+ip addr show ens160
 # Phải thấy: inet 192.168.136.148/24
 ```
 A.3 — Cập nhật /etc/hosts
