@@ -6,7 +6,7 @@
 ---
 
 # ═══════════════════════════════════
-# BƯỚC 1: CÀI APACHE & CHUẨN BỊ MÁY
+### BƯỚC 1: CÀI APACHE & CHUẨN BỊ MÁY
 # ═══════════════════════════════════
 
 ## 1.1 Cập nhật hệ thống
@@ -68,7 +68,7 @@ curl -I http://192.168.136.131
 ---
 
 # ═══════════════════════════════════
-# BƯỚC 2: TẠO WEBSITE DEMO THẬT
+### BƯỚC 2: TẠO WEBSITE DEMO THẬT
 # ═══════════════════════════════════
 
 > **Giải thích:** Trong môi trường lab, chúng ta giả lập một website
@@ -224,7 +224,7 @@ echo "✅ Tạo trang HTML xong!"
 ---
 
 # ═══════════════════════════════════════════════════════
-# BƯỚC 3: CẤU HÌNH VIRTUALHOST CHO APACHE
+### BƯỚC 3: CẤU HÌNH VIRTUALHOST CHO APACHE
 # ═══════════════════════════════════════════════════════
 
 > **Giải thích VirtualHost là gì:**
@@ -334,7 +334,7 @@ tail -f /var/log/apache2/lab.nhanhhoa.local/access.log
 ---
 
 # ══════════════════════════════════════════════════════════════
-# BƯỚC 4A: CÀI SSL – DÙNG SELF-SIGNED (CHO LAB KHÔNG CÓ DOMAIN)
+### BƯỚC 4A: CÀI SSL – DÙNG SELF-SIGNED (CHO LAB KHÔNG CÓ DOMAIN)
 # ══════════════════════════════════════════════════════════════
 
 > **Lưu ý quan trọng:** Let's Encrypt yêu cầu domain phải trỏ về
@@ -556,8 +556,8 @@ curl -I http://lab.nhanhhoa.local
 ---
 
 # ═══════════════════════════════════════════════════════════════
-# BƯỚC 4B: CÀI LET'S ENCRYPT – KHI CÓ DOMAIN THẬT
-# (Thực hiện bước này khi domain đã trỏ về server)
+### BƯỚC 4B: CÀI LET'S ENCRYPT – KHI CÓ DOMAIN THẬT
+### (Thực hiện bước này khi domain đã trỏ về server)
 # ═══════════════════════════════════════════════════════════════
 
 > **Điều kiện để thực hiện:**
@@ -678,7 +678,7 @@ Hạn là 90 ngày
 ---
 
 # ════════════════════════════════════════
-# BƯỚC 5: KIỂM TRA SSL HOẠT ĐỘNG
+### BƯỚC 5: KIỂM TRA SSL HOẠT ĐỘNG
 # ════════════════════════════════════════
 
 ## 5.1 Kiểm tra cơ bản
@@ -756,8 +756,7 @@ journalctl -u apache2 -f
 ---
 
 # ════════════════════════════════════════
-# CÀI THÊM SSL CHO NGINX
-# (Làm thêm để so sánh với Apache)
+### CÀI THÊM SSL CHO NGINX
 # ════════════════════════════════════════
 
 ```bash
@@ -861,7 +860,7 @@ curl -k -I https://hieucute.id.vn:8443
 ---
 
 # ════════════════════════════════════════
-# BƯỚC 7: TỰ ĐỘNG GIA HẠN SSL
+### BƯỚC 7: TỰ ĐỘNG GIA HẠN SSL
 # ════════════════════════════════════════
 
 > **Với Let's Encrypt (domain thật):** Certbot tự gia hạn
