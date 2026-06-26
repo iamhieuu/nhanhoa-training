@@ -1,6 +1,5 @@
 # 🔐 LAB CÁ NHÂN: CÀI ĐẶT SSL/TLS TỪ ĐẦU ĐẾN CUỐI
 ## Môi trường: Ubuntu 22.04 LTS | IP: 192.168.136.131
-## Nhân Hòa Hosting – Hướng dẫn thực chiến
 
 
 ---
@@ -223,9 +222,9 @@ echo "✅ Tạo trang HTML xong!"
 
 ---
 
-# ═══════════════════════════════════════════════════════
+## ════════════════════════════════════════════════════
 ### BƯỚC 3: CẤU HÌNH VIRTUALHOST CHO APACHE
-# ═══════════════════════════════════════════════════════
+## ════════════════════════════════════════════════════ 
 
 > **Giải thích VirtualHost là gì:**
 > Một server Apache có thể host nhiều website cùng lúc.
@@ -333,9 +332,9 @@ tail -f /var/log/apache2/lab.nhanhhoa.local/access.log
 
 ---
 
-# ══════════════════════════════════════════════════════════════
+## ══════════════════════════════════════════════════
 ### BƯỚC 4A: CÀI SSL – DÙNG SELF-SIGNED (CHO LAB KHÔNG CÓ DOMAIN)
-# ══════════════════════════════════════════════════════════════
+## ══════════════════════════════════════════════════
 
 > **Lưu ý quan trọng:** Let's Encrypt yêu cầu domain phải trỏ về
 > server từ internet. Trong lab local (192.168.x.x) KHÔNG dùng được
@@ -516,7 +515,7 @@ APACHEEOF
 
 echo "✅ Tạo cấu hình HTTPS xong!"
 ```
-
+----
 ## 4A.4 Kích hoạt và kiểm tra
 
 ```bash
@@ -555,20 +554,20 @@ curl -I http://lab.nhanhhoa.local
 
 ---
 
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════
 ### BƯỚC 4B: CÀI LET'S ENCRYPT – KHI CÓ DOMAIN THẬT
-### (Thực hiện bước này khi domain đã trỏ về server)
-# ═══════════════════════════════════════════════════════════════
+### (Thực hiện khi domain đã trỏ về server)
+# ═══════════════════════════════════════════════
 
 > **Điều kiện để thực hiện:**
-> - Bạn có domain thật (vd: hieucute.id.vn)
+> - Bạn có domain thật hieucute.id.vn
 > - Domain đã trỏ A record về IP server
 > - Server mở port 80 và 443 từ internet
 
 ## 4B.1 Kiểm tra điều kiện trước khi cài
 
 ```bash
-# Giả sử domain thật là: hieucute.id.vn
+# Domain: hieucute.id.vn
 
 # 1. Kiểm tra DNS đã trỏ đúng chưa
 dig hieucute.id.vn A +short
@@ -579,10 +578,12 @@ dig hieucute.id.vn A +short
 # 2. Kiểm tra port 80 từ internet mở chưa
 # Dùng https://portchecker.co/ kiểm tra domain:port 80
 ```
+
 <img width="511" height="271" alt="image" src="https://github.com/user-attachments/assets/13cca2e2-8648-421a-a9f1-b81c913bf0fd" />
+
 ```
 # 3. Kiểm tra certbot có thể vào được chưa
-curl -I http://hieucute.id.vn
+curl -I http://hieucute.id.vn  
 # Phải trả về 200 hoặc redirect
 ```
 
@@ -672,14 +673,15 @@ ls -la /etc/letsencrypt/live/hieucute.id.vn/
 # Kiểm tra ngày hết hạn
 openssl x509 -in /etc/letsencrypt/live/hieucute.id.vn/cert.pem -noout -dates
 ```
-<img width="608" height="55" alt="image" src="https://github.com/user-attachments/assets/a368e9fa-8898-4252-a19b-c3240d864c5d" />
+<img width="608" height="55" alt="image" src="https://github.com/user-attachments/assets/a368e9fa-8898-4252-a19b-c3240d864c5d" />  
+
 Hạn là 90 ngày  
 
 ---
 
-# ════════════════════════════════════════
+# ═══════════════════════════════════
 ### BƯỚC 5: KIỂM TRA SSL HOẠT ĐỘNG
-# ════════════════════════════════════════
+# ═══════════════════════════════════
 
 ## 5.1 Kiểm tra cơ bản
 
@@ -755,9 +757,9 @@ journalctl -u apache2 -f
 
 ---
 
-# ════════════════════════════════════════
+# ════════════════════════════════════
 ### CÀI THÊM SSL CHO NGINX
-# ════════════════════════════════════════
+# ════════════════════════════════════
 
 ```bash
 # Cài Nginx (sẽ chạy song song với Apache trên port khác)
@@ -859,14 +861,14 @@ curl -k -I https://hieucute.id.vn:8443
 
 ---
 
-# ════════════════════════════════════════
-### BƯỚC 7: TỰ ĐỘNG GIA HẠN SSL
-# ════════════════════════════════════════
+# ═══════════════════════════════════
+### BƯỚC 6: TỰ ĐỘNG GIA HẠN SSL
+# ═══════════════════════════════════
 
 > **Với Let's Encrypt (domain thật):** Certbot tự gia hạn
 > **Với Self-Signed (lab):** Tạo script tự làm mới cert
 
-## 7.1 Kiểm tra certbot timer (Let's Encrypt)
+## 6.1 Kiểm tra certbot timer (Let's Encrypt)
 
 ```bash
 # Ubuntu 22.04 có sẵn certbot.timer qua systemd
@@ -878,7 +880,7 @@ certbot renew --dry-run
 ```
 <img width="646" height="255" alt="image" src="https://github.com/user-attachments/assets/8a4e6953-0ca2-4f8b-960c-368cec51c94b" />
 
-## 7.2 Tạo cronjob backup + gia hạn
+## 6.2 Tạo cronjob backup + gia hạn
 
 ```bash
 # Mở crontab
@@ -892,7 +894,7 @@ crontab -e
 0 8 * * * /opt/scripts/check-ssl.sh >> /var/log/ssl-check.log 2>&1
 ```
 
-## 7.3 Script kiểm tra SSL hàng ngày
+## 6.3 Script kiểm tra SSL hàng ngày
 
 ```bash
 mkdir -p /opt/scripts
