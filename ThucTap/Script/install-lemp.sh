@@ -1,59 +1,83 @@
+```bash
 #!/bin/bash
+set -e
 
-# 1. Cập nhật hệ thống
+# Cập nhật hệ thống
 sudo apt update && sudo apt upgrade -y
 
-# 2. Cài đặt Nginx
-sudo apt install nginx -y
-sudo systemctl start nginx
+# Cài đặt Nginx
+sudo apt install -y nginx
 sudo systemctl enable nginx
+sudo systemctl start nginx
 
-# 3. Cài đặt MariaDB (Thay cho MySQL cho nhẹ và ổn định hơn)
-sudo apt install mariadb-server mariadb-client -y
-sudo systemctl start mariadb
+# Cài đặt MariaDB
+sudo apt install -y mariadb-server
 sudo systemctl enable mariadb
+sudo systemctl start mariadb
 
-# 4. Cài đặt PHP 8.1 và các module cần thiết
-sudo apt install php8.1-fpm php8.1-mysql php8.1-common php8.1-cli php8.1-gd php8.1-curl -y
+# Xóa user anonymous và database test
+sudo mysql -e "DELETE FROM mysql.user WHERE User='';"
+sudo mysql -e "DROP DATABASE IF EXISTS test;"
+sudo mysql -e "FLUSH PRIVILEGES;"
 
-# 5. Cấu hình Nginx Default Site (Ghi đè cấu hình chuẩn)
-sudo tee /etc/nginx/sites-available/default <<EOF
+# Thêm repository PHP
+sudo apt install -y software-properties-common
+sudo add-apt-repository -y ppa:ondrej/php
+
+# Cập nhật package
+sudo apt update
+
+# Cài đặt PHP 8.1 và các extension
+sudo apt install -y \
+php8.1-fpm \
+php8.1-mysql \
+php8.1-cli \
+php8.1-curl \
+php8.1-gd \
+php8.1-mbstring \
+php8.1-xml \
+php8.1-zip
+
+# Khởi động PHP-FPM
+sudo systemctl enable php8.1-fpm
+sudo systemctl start php8.1-fpm
+
+# Cấu hình Nginx
+sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX'
 server {
     listen 80 default_server;
-    listen [::]:80 default_server;
-
-    root /var/www/html;
-    index index.php index.html index.htm index.nginx-debian.html;
-
     server_name _;
 
+    root /var/www/html;
+    index index.php index.html index.htm;
+
     location / {
-        try_files \$uri \$uri/ =404;
+        try_files $uri $uri/ /index.php?$args;
     }
 
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_pass unix:/run/php/php8.1-fpm.sock;
     }
 
-    location ~ /\.ht {
+    location ~ /\. {
         deny all;
     }
 }
-EOF
+NGINX
 
-# 6. Tạo file info.php để kiểm tra
-echo "<?php phpinfo(); ?>" | sudo tee /var/www/html/info.php
+# Kiểm tra và reload Nginx
+sudo nginx -t
+sudo systemctl reload nginx
 
-# 7. Cấp quyền cho thư mục web
-sudo chown -R www-data:www-data /var/www/html
-sudo chmod -R 755 /var/www/html
+# Tạo file phpinfo
+echo "<?php phpinfo(); ?>" | sudo tee /var/www/html/info.php > /dev/null
 
-# 8. Restart dịch vụ
-sudo nginx -t && sudo systemctl restart nginx
-sudo systemctl restart php8.1-fpm
-
-echo "------------------------------------------------"
-echo " Cai dat LEMP hoan tat!"
-echo " Truy cap http://$(curl -s ifconfig.me)/info.php de kiem tra."
-echo "------------------------------------------------"
+# Hiển thị thông tin
+echo "========================================"
+echo "LEMP Stack cài đặt thành công!"
+echo "PHP   : $(php -v | head -1)"
+echo "Nginx : $(nginx -v 2>&1)"
+echo "MariaDB: $(mysql --version)"
+echo "========================================"
+```
