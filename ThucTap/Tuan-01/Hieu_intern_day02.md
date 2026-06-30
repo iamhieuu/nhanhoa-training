@@ -35,7 +35,7 @@ Ngoài phân giải A/AAAA, DNS còn lưu các loại thông tin khác: mail ser
   - **Authoritative response**: trả lời các resolver bên ngoài hỏi về domain nó quản lý.
 - Resolver **cache** lại kết quả đã phân giải theo TTL của bản ghi để tối ưu cho các truy vấn lặp lại.
 
-> *Lưu ý 2026:* mô hình "ICANN quản lý domain, registrar quản lý đăng ký, registry vận hành TLD (.com, .net...)" đã thay thế hoàn toàn cơ chế INTERNIC cũ từ lâu — không còn giá trị tra cứu thực tế trong vận hành hàng ngày.
+
 
 ---
 
