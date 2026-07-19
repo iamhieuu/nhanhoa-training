@@ -6,3 +6,4 @@ training system admin
 - **Vị trí:** Thực tập sinh Kỹ thuật
 - **Mục tiêu:** Hoàn thành xuất sắc lộ trình đào tạo, nắm vững các dải sản phẩm dịch vụ của Nhân Hòa để trở thành nhân viên chính thức.
 
+Đã hoàn thiện và sửa đổi bên /iamhieuu/nhanhoa
